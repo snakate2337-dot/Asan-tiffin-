@@ -1,0 +1,2356 @@
+<!DOCTYPE html>
+<html lang="mr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Asan Tiffin - मालक ॲप (Owner)</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#E65100">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Asan Tiffin">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Firebase Compat Libraries -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <style>
+    :root {
+      --bg: #F8F9FA;
+      --surface: #FFFFFF;
+      --surface-2: #F1F3F5;
+      --text: #212529;
+      --text-muted: #6C757D;
+      --border: #E9ECEF;
+      --primary: #E65100;
+      --primary-light: #FFE0B2;
+      --primary-hover: #BF360C;
+      --success: #2E7D32;
+      --success-light: #E8F5E9;
+      --danger: #D32F2F;
+      --danger-light: #FFEBEE;
+      --warning: #F57F17;
+      --warning-light: #FFF9C4;
+      --info: #0288D1;
+      --info-light: #E1F5FE;
+      --shadow: 0 4px 12px rgba(0,0,0,0.06);
+      --radius: 12px;
+      --header-h: 60px;
+      --bottom-h: 64px;
+    }
+    [data-theme="dark"] {
+      --bg: #121212;
+      --surface: #1E1E1E;
+      --surface-2: #2A2A2A;
+      --text: #F8F9FA;
+      --text-muted: #A0AEC0;
+      --border: #333333;
+      --primary: #FF9800;
+      --primary-light: #3E2723;
+      --shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    [data-theme="black"] {
+      --bg: #000000;
+      --surface: #0A0A0A;
+      --surface-2: #141414;
+      --text: #FFFFFF;
+      --text-muted: #888888;
+      --border: #222222;
+      --primary: #FFA726;
+      --primary-light: #20150A;
+      --shadow: 0 0 0 1px #222;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Baloo 2', sans-serif; -webkit-tap-highlight-color: transparent; }
+    body { background: var(--bg); color: var(--text); min-height: 100vh; padding-top: var(--header-h); padding-bottom: calc(var(--bottom-h) + 16px); }
+
+    /* TOPBAR */
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0; height: var(--header-h);
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 12px; z-index: 100; box-shadow: var(--shadow);
+    }
+    .topbar-brand { display: flex; align-items: center; gap: 8px; font-size: 1.15rem; font-weight: 800; color: var(--primary); }
+    .badge-count { background: var(--primary-light); color: var(--primary); font-size: 0.75rem; padding: 2px 8px; border-radius: 20px; font-weight: 700; }
+    .topbar-actions { display: flex; align-items: center; gap: 6px; }
+    .icon-btn {
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: 8px; width: 36px; height: 36px; display: flex;
+      align-items: center; justify-content: center; cursor: pointer; font-size: 1rem; color: var(--text);
+    }
+    .btn-delivery { background: var(--primary); color: #fff; border: none; font-weight: 700; font-size: 0.8rem; padding: 6px 10px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+
+    /* BOTTOM NAV */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0; height: var(--bottom-h);
+      background: var(--surface); border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-around;
+      z-index: 100; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); overflow-x: auto;
+    }
+    .nav-tab {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-width: 46px; height: 100%; border: none; background: transparent;
+      color: var(--text-muted); cursor: pointer; font-size: 0.68rem; font-weight: 600; padding: 2px 4px;
+    }
+    .nav-tab .tab-icon { font-size: 1.15rem; }
+    .nav-tab.active { color: var(--primary); font-weight: 800; }
+
+    /* CONTENT CONTAINERS */
+    .tab-content { display: none; padding: 12px; max-width: 720px; margin: 0 auto; }
+    .tab-content.active { display: block; animation: fadeIn 0.15s ease-in; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* CARDS */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px; margin-bottom: 12px; box-shadow: var(--shadow);
+    }
+    .card-title { font-size: 1rem; font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+    .card-danger { background: var(--danger-light); border-color: #EF9A9A; color: var(--danger); }
+    [data-theme="dark"] .card-danger { background: #311111; border-color: #B71C1C; color: #FFCDD2; }
+
+    /* BADGES & CHIPS */
+    .chip { display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; padding: 4px 10px; border-radius: 16px; font-weight: 600; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); }
+    .chip.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .chip-group { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 10px; }
+    .tag-veg { background: #E8F5E9; color: #2E7D32; border: 1px solid #A5D6A7; font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; font-weight: 700; }
+    .tag-nv { background: #FFEBEE; color: #C62828; border: 1px solid #EF9A9A; font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; font-weight: 700; }
+    .tag-both { background: #FFF3E0; color: #E65100; border: 1px solid #FFCC80; font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; font-weight: 700; }
+
+    /* BUTTONS */
+    .btn {
+      padding: 8px 14px; border-radius: 8px; font-size: 0.88rem; font-weight: 700;
+      cursor: pointer; border: 1px solid transparent; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-secondary { background: var(--surface-2); color: var(--text); border-color: var(--border); }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-block { width: 100%; }
+    .btn-sm { padding: 4px 8px; font-size: 0.78rem; border-radius: 6px; }
+
+    /* INPUTS */
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 0.82rem; font-weight: 700; margin-bottom: 4px; color: var(--text-muted); }
+    .form-control {
+      width: 100%; padding: 9px 12px; border: 1px solid var(--border);
+      border-radius: 8px; font-size: 0.92rem; background: var(--surface); color: var(--text);
+    }
+    .form-control:focus { outline: none; border-color: var(--primary); ring: 2px var(--primary-light); }
+
+    /* GRID STATS */
+    .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px; }
+    .stat-box { background: var(--surface-2); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); }
+    .stat-label { font-size: 0.72rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
+    .stat-val { font-size: 1.3rem; font-weight: 800; color: var(--text); }
+
+    /* CUSTOMER CARDS */
+    .cust-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px; margin-bottom: 10px;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .cust-card.inactive { opacity: 0.6; background: var(--surface-2); }
+    .cust-header { display: flex; align-items: center; justify-content: space-between; }
+    .cust-id { background: var(--primary); color: #fff; font-weight: 800; border-radius: 6px; padding: 2px 7px; font-size: 0.82rem; }
+    .cust-name { font-weight: 700; font-size: 1rem; flex: 1; margin-left: 8px; }
+    .cust-due { font-weight: 800; font-size: 0.95rem; }
+    .cust-due.has-due { color: var(--danger); }
+    .cust-due.has-adv { color: var(--success); }
+    .cust-meta { display: flex; flex-wrap: wrap; gap: 6px; font-size: 0.78rem; color: var(--text-muted); align-items: center; }
+    .cust-actions { display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+
+    /* MODAL */
+    .modal {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; padding: 14px;
+    }
+    .modal.show { display: flex; }
+    .modal-box {
+      background: var(--surface); border-radius: var(--radius);
+      width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto;
+      padding: 18px; border: 1px solid var(--border); box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+    .modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .modal-title { font-size: 1.15rem; font-weight: 800; }
+    .close-btn { background: none; border: none; font-size: 1.4rem; cursor: pointer; color: var(--text-muted); }
+
+    /* NOTEPAD TAGS */
+    .tag-pill { cursor: pointer; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; border: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="topbar-brand">
+      <span>🍱 आसन टिफिन</span>
+      <span class="badge-count" id="topActiveCount">0 ग्राहक</span>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn-delivery" onclick="openDeliveryView()">🚴 डिलिव्हरी</button>
+      <button class="icon-btn" onclick="triggerPwaInstall()" title="मोबाईलवर ॲप इन्स्टॉल करा" style="background:#FFF3E0; border-color:#FFA726;">📲</button>
+      <button class="icon-btn" onclick="toggleTheme()" title="थीम बदला" id="themeBtn">🌙</button>
+      <button class="icon-btn" onclick="openReminderModal()" title="रिमाइंडर">🔔</button>
+      <button class="icon-btn" onclick="openPlansModal()" title="प्लॅन सेटिंग्ज">⚙️</button>
+      <button class="icon-btn" onclick="openBackupModal()" title="बॅकअप">💾</button>
+    </div>
+  </header>
+
+  <!-- TAB 1: DASHBOARD -->
+  <main id="tab-dashboard" class="tab-content active">
+    <!-- Sticky Due Customers Alert -->
+    <div class="card card-danger" id="dueAlertCard" style="display: none;">
+      <div class="card-title" style="color: var(--danger);">
+        <span>⚠️ शिल्लक बाकी ग्राहक (<span id="dueCustCount">0</span>)</span>
+        <button class="btn btn-danger btn-sm" onclick="sendAllDueWA()">📲 सर्वांना WA पाठवा</button>
+      </div>
+      <div id="dueListPreview" style="font-size: 0.85rem; max-height: 120px; overflow-y: auto;"></div>
+    </div>
+
+    <!-- Roti Counter Card -->
+    <div class="card" id="rotiCounterCard" style="border-left: 4px solid var(--primary);">
+      <div class="card-title" style="margin-bottom: 8px;">
+        <span style="display:flex; align-items:center; gap:6px;">
+          <span>🫓 पोळी मोजणी (Roti Counter)</span>
+        </span>
+        <span class="tag-veg" id="totalRotiCount" style="font-size: 1rem; padding: 4px 10px; font-weight:800;">0 पोळ्या</span>
+      </div>
+
+      <!-- Meal Filter Chips for Roti Counter -->
+      <div style="display:flex; gap:6px; margin-bottom:12px; overflow-x:auto; padding-bottom:4px;">
+        <button class="chip active" id="rotiFilterAll" onclick="setRotiMealFilter('All', this)">☀️ सर्व दिवस (Full Day)</button>
+        <button class="chip" id="rotiFilterLunch" onclick="setRotiMealFilter('Lunch', this)">🍛 दुपार (Lunch)</button>
+        <button class="chip" id="rotiFilterDinner" onclick="setRotiMealFilter('Dinner', this)">🌙 रात्र (Dinner)</button>
+      </div>
+
+      <!-- Quick Stats Metrics -->
+      <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 10px;">
+        <div class="stat-box">
+          <div class="stat-label">🍛 दुपार (Lunch)</div>
+          <div class="stat-val" id="rotiLunchVal" style="color:var(--primary); font-size:1.1rem;">0</div>
+          <div style="font-size:0.7rem; color:var(--text-muted);" id="rotiLunchCusts">0 ग्राहक</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">🌙 रात्र (Dinner)</div>
+          <div class="stat-val" id="rotiDinnerVal" style="color:var(--accent); font-size:1.1rem;">0</div>
+          <div style="font-size:0.7rem; color:var(--text-muted);" id="rotiDinnerCusts">0 ग्राहक</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">🚫 वगळलेले</div>
+          <div class="stat-val" id="rotiExcludedVal" style="color:var(--danger); font-size:1.1rem;">0</div>
+          <div style="font-size:0.7rem; color:var(--text-muted);" id="rotiExcludedNote">सुट्टी/निष्क्रिय</div>
+        </div>
+      </div>
+
+      <!-- Plan-wise Roti Breakdown Grid -->
+      <div style="font-size:0.8rem; font-weight:700; color:var(--text-muted); margin-bottom:6px;">प्लॅननिहाय पोळी विभाजन:</div>
+      <div id="rotiBreakdown" class="stats-grid" style="margin-bottom:8px;">
+        <!-- populated via js -->
+      </div>
+
+      <!-- Excluded Details Toggle -->
+      <div style="background:var(--surface-2); padding:8px 10px; border-radius:8px; font-size:0.78rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleRotiExcludedDetails()">
+          <span style="font-weight:700; color:var(--text-muted);" id="rotiExcludedSummaryTitle">ℹ️ सुट्टी व निष्क्रिय ग्राहक तपशील</span>
+          <span id="rotiExcludedToggleIcon">▼</span>
+        </div>
+        <div id="rotiExcludedDetailsList" style="display:none; margin-top:6px; max-height:120px; overflow-y:auto; border-top:1px solid var(--border); padding-top:4px;">
+          <!-- populated via js -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Today's Sabji Card -->
+    <div class="card">
+      <div class="card-title">
+        <span id="todaySabjiDay">🍲 आजची भाजी</span>
+        <button class="btn btn-secondary btn-sm" onclick="openSabjiModal()">✏️ मेनू बदला</button>
+      </div>
+      <div style="font-size: 0.9rem; display: flex; flex-direction: column; gap: 6px;">
+        <div style="background: var(--surface-2); padding: 8px; border-radius: 8px;">
+          <strong>🥦 व्हेज (Veg):</strong> रस्सा: <span id="dashVegGravy">-</span> | सुकी: <span id="dashVegDry">-</span>
+        </div>
+        <div style="background: var(--surface-2); padding: 8px; border-radius: 8px;">
+          <strong>🍗 नॉन-व्हेज (Non-Veg):</strong> रस्सा: <span id="dashNvGravy">-</span> | सुकी: <span id="dashNvDry">-</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Extra Tiffins & Chutti -->
+    <div class="stats-grid">
+      <div class="card" style="margin-bottom:0;">
+        <div class="card-title" style="font-size: 0.9rem;">
+          <span>➕ एक्स्ट्रा टिफिन</span>
+          <button class="btn btn-primary btn-sm" onclick="openExtraTiffinModal()">+</button>
+        </div>
+        <div class="stat-val" id="extraTiffinCount">0</div>
+        <small style="color:var(--text-muted);">आजचे जादा टिफिन</small>
+      </div>
+      <div class="card" style="margin-bottom:0;">
+        <div class="card-title" style="font-size: 0.9rem;">
+          <span>🏖️ आजची सुट्टी</span>
+          <button class="btn btn-secondary btn-sm" onclick="openChuttiModal()">नोंदवा</button>
+        </div>
+        <div class="stat-val" id="chuttiCount">0</div>
+        <small style="color:var(--text-muted);">सुट्टी घेतलेले ग्राहक</small>
+      </div>
+    </div>
+    <div style="height: 12px;"></div>
+
+    <!-- Quick Actions -->
+    <div class="card">
+      <div class="card-title">⚡ झटपट कृती (Quick Actions)</div>
+      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+        <button class="btn btn-secondary btn-sm" onclick="promptNewMonthReset()">🗓 नवीन महिना रीसेट</button>
+        <button class="btn btn-secondary btn-sm" onclick="sendDueRemindersWA()">🔔 बाकी स्मरण WA</button>
+        <button class="btn btn-secondary btn-sm" onclick="openDeliveryExpenseModal()">🛵 डिलिव्हरी खर्च</button>
+        <button class="btn btn-secondary btn-sm" onclick="openMonthlySummary()">📊 मासिक गोषवारा</button>
+      </div>
+    </div>
+
+    <!-- Notepad -->
+    <div class="card">
+      <div class="card-title">
+        <span>📝 मालक वही / टिपण (Notepad)</span>
+        <button class="btn btn-primary btn-sm" onclick="saveOwnerNote()">साठवा</button>
+      </div>
+      <div style="display: flex; gap: 6px; margin-bottom: 8px; overflow-x: auto;">
+        <span class="tag-pill" onclick="insertNoteTag('✅ Done ')">✅ Done</span>
+        <span class="tag-pill" onclick="insertNoteTag('📞 Call ')">📞 Call</span>
+        <span class="tag-pill" onclick="insertNoteTag('💰 Payment ')">💰 Payment</span>
+        <span class="tag-pill" onclick="insertNoteTag('⚠ Urgent ')">⚠ Urgent</span>
+        <span class="tag-pill" onclick="insertNoteTag('🛒 Kharidi ')">🛒 Kharidi</span>
+      </div>
+      <textarea id="ownerNotepad" class="form-control" rows="3" placeholder="येथे आजच्या महत्त्वाच्या गोष्टी किंवा खरेदीची यादी लिहा..."></textarea>
+    </div>
+  </main>
+
+  <!-- TAB 2: CUSTOMERS -->
+  <section id="tab-customers" class="tab-content">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+      <h2 style="font-size: 1.15rem; font-weight: 800;">ग्राहक व्यवस्थापन</h2>
+      <button class="btn btn-primary btn-sm" onclick="openAddCustomerModal()">+ नवीन ग्राहक</button>
+    </div>
+    <div class="chip-group">
+      <button class="chip active" onclick="filterCustomers('all', this)">सर्व</button>
+      <button class="chip" onclick="filterCustomers('Lunch', this)">दुपार (Lunch)</button>
+      <button class="chip" onclick="filterCustomers('Dinner', this)">रात्र (Dinner)</button>
+      <button class="chip" onclick="filterCustomers('Both', this)">दोन्ही (Both)</button>
+      <button class="chip" onclick="filterCustomers('due', this)">बाकीदार (Due)</button>
+      <button class="chip" onclick="filterCustomers('advance', this)">अ‍ॅडव्हान्स</button>
+      <button class="chip" onclick="filterCustomers('inactive', this)">बंद (Inactive)</button>
+    </div>
+    <input type="text" id="custSearchInput" class="form-control" placeholder="🔍 नाव, नंबर किंवा भाग शोधा..." oninput="renderCustomers()" style="margin-bottom: 12px;">
+    <div id="customersListContainer">
+      <!-- Populated via JS -->
+    </div>
+  </section>
+
+  <!-- TAB 3: ORDERS -->
+  <section id="tab-orders" class="tab-content">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+      <h2 style="font-size: 1.15rem; font-weight: 800;">आजच्या ऑर्डर्स</h2>
+      <button class="btn btn-secondary btn-sm" onclick="togglePackingGrouping()" id="groupPackingBtn">🥦/🍗 पॅकिंग गट</button>
+    </div>
+    <!-- 3 Stage Fast Cards -->
+    <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 10px;">
+      <div class="card" style="margin-bottom:0; text-align: center; cursor:pointer;" onclick="markAllStage('cooking')">
+        <div style="font-size: 1.4rem;">🍳</div>
+        <div style="font-weight: 800; font-size: 1.1rem;" id="countCooking">0</div>
+        <div style="font-size: 0.72rem; color:var(--text-muted);">बनवणे सुरू</div>
+      </div>
+      <div class="card" style="margin-bottom:0; text-align: center; cursor:pointer;" onclick="markAllStage('packed')">
+        <div style="font-size: 1.4rem;">📦</div>
+        <div style="font-weight: 800; font-size: 1.1rem;" id="countPacked">0</div>
+        <div style="font-size: 0.72rem; color:var(--text-muted);">पॅक झाले</div>
+      </div>
+      <div class="card" style="margin-bottom:0; text-align: center; cursor:pointer;" onclick="markAllStage('onway')">
+        <div style="font-size: 1.4rem;">🚴</div>
+        <div style="font-weight: 800; font-size: 1.1rem;" id="countOnway">0</div>
+        <div style="font-size: 0.72rem; color:var(--text-muted);">रस्त्यात / निघून</div>
+      </div>
+    </div>
+    <div style="margin-bottom: 8px;">
+      <button class="btn btn-secondary btn-sm btn-block" onclick="openWABroadcastModal()">📲 स्टेज WA ब्रॉडकास्ट (एक-एक ग्राहक)</button>
+    </div>
+    <div class="chip-group">
+      <button class="chip active" onclick="filterOrders('all', this)">सर्व</button>
+      <button class="chip" onclick="filterOrders('pending', this)">बाकी</button>
+      <button class="chip" onclick="filterOrders('done', this)">डिलिव्हर्ड</button>
+      <button class="chip" onclick="filterOrders('skip', this)">सुट्टी</button>
+      <button class="chip" onclick="filterOrders('Lunch', this)">दुपार</button>
+      <button class="chip" onclick="filterOrders('Dinner', this)">रात्र</button>
+      <button class="chip" onclick="filterOrders('Veg', this)">🥦 व्हेज</button>
+      <button class="chip" onclick="filterOrders('NonVeg', this)">🍗 नॉनव्हेज</button>
+    </div>
+    <div id="ordersListContainer">
+      <!-- Populated via JS -->
+    </div>
+  </section>
+
+  <!-- TAB 4: PAYMENTS -->
+  <section id="tab-payments" class="tab-content">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+      <h2 style="font-size: 1.15rem; font-weight: 800;">पेमेंट आणि हिशोब</h2>
+      <button class="btn btn-primary btn-sm" onclick="openAddPaymentModal()">+ पेमेंट नोंदवा</button>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-label">एकूण बाकी (Due)</div>
+        <div class="stat-val" style="color: var(--danger);" id="payTotalDue">₹0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">अ‍ॅडव्हान्स (Advance)</div>
+        <div class="stat-val" style="color: var(--success);" id="payTotalAdvance">₹0</div>
+      </div>
+    </div>
+    <!-- Monthly P&L Summary -->
+    <div class="card">
+      <div class="card-title">
+        <span>📊 चालू महिना नफा-तोटा (P&L)</span>
+        <button class="btn btn-secondary btn-sm" onclick="sharePLWhatsApp()">📲 WA शेअर</button>
+      </div>
+      <div style="font-size: 0.88rem; display: flex; flex-direction: column; gap: 6px;">
+        <div style="display:flex; justify-content:space-between;"><span>अपेक्षित उत्पन्न (Expected):</span> <strong id="plExpected">₹0</strong></div>
+        <div style="display:flex; justify-content:space-between;"><span>जमा झालेले (Received):</span> <strong style="color:var(--success);" id="plReceived">₹0</strong></div>
+        <div style="display:flex; justify-content:space-between;"><span>किचन खर्च (Kitchen Exp):</span> <strong style="color:var(--danger);" id="plKitchenExp">₹0</strong></div>
+        <div style="display:flex; justify-content:space-between;"><span>डिलिव्हरी खर्च (Delivery Exp):</span> <strong style="color:var(--danger);" id="plDeliveryExp">₹0</strong></div>
+        <hr style="border:none; border-top:1px dashed var(--border);">
+        <div style="display:flex; justify-content:space-between; font-size: 1rem;">
+          <span><strong>निव्वळ नफा (Net Profit):</strong></span>
+          <strong style="color: var(--primary);" id="plNetProfit">₹0</strong>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">
+        <span>📱 अलीकडील पेमेंट्स (Recent Payments)</span>
+      </div>
+      <div id="paymentsListContainer" style="font-size: 0.88rem; max-height: 280px; overflow-y: auto;">
+        <!-- Populated via JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 5: REPORT -->
+  <section id="tab-report" class="tab-content">
+    <h2 style="font-size: 1.15rem; font-weight: 800; margin-bottom: 12px;">📈 व्यवसाय अहवाल (Reports)</h2>
+    <div class="card">
+      <div class="card-title">भागानुसार ग्राहक (Area Breakdown - पंढरपूर)</div>
+      <div id="areaBreakdownList" style="font-size: 0.88rem;"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">प्लॅननुसार वाटप (Plan Breakdown)</div>
+      <div id="planBreakdownList" style="font-size: 0.88rem;"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">नियमित व उत्तम ग्राहक (Top Customers)</div>
+      <div id="topCustomersList" style="font-size: 0.88rem;"></div>
+    </div>
+  </section>
+
+  <!-- TAB 6: CLASS (KITCHEN) -->
+  <section id="tab-class" class="tab-content">
+    <h2 style="font-size: 1.15rem; font-weight: 800; margin-bottom: 12px;">👩‍🍳 स्वयंपाकघर (Kitchen Helper)</h2>
+    <div class="card">
+      <div class="card-title">🫓 मॅन्युअल पोळी मोजणी कॅल्क्युलेटर</div>
+      <div class="form-group">
+        <label>एक्स्ट्रा ग्राहक संख्या:</label>
+        <input type="number" id="calcCustCount" class="form-control" value="10" oninput="calculateKitchenRoti()">
+      </div>
+      <div class="form-group">
+        <label>दर ग्राहक पोळ्या:</label>
+        <select id="calcRotiPerCust" class="form-control" onchange="calculateKitchenRoti()">
+          <option value="2">२ पोळ्या (Basic)</option>
+          <option value="3" selected>३ पोळ्या (Standard)</option>
+          <option value="4">४ पोळ्या (Premium)</option>
+        </select>
+      </div>
+      <div class="stat-box" style="margin-top: 8px;">
+        <div class="stat-label">एकूण अपेक्षित पोळ्या</div>
+        <div class="stat-val" id="calcTotalRotiVal" style="color:var(--primary);">30</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">आज जमा झालेले पेमेंट (Today's Collections)</div>
+      <div id="kitchenTodayPayments" style="font-size: 0.88rem;"></div>
+    </div>
+  </section>
+
+  <!-- TAB 7: BILL -->
+  <section id="tab-bill" class="tab-content">
+    <h2 style="font-size: 1.15rem; font-weight: 800; margin-bottom: 12px;">🧾 ग्राहक बिल जनरेटर</h2>
+    <div class="card">
+      <div class="form-group">
+        <label>ग्राहक निवडा:</label>
+        <select id="billCustSelect" class="form-control" onchange="loadCustomerBill()"></select>
+      </div>
+      <div id="billDetailsBox" style="display: none;">
+        <div style="background: var(--surface-2); padding: 10px; border-radius: 8px; margin-bottom: 12px; font-size: 0.88rem;">
+          <div><strong>प्लॅन:</strong> <span id="billPlanName">-</span> (<span id="billPlanAmount">₹0</span>)</div>
+          <div><strong>हजर दिवस:</strong> <span id="billPresentDays">0</span> दिवस</div>
+          <div><strong>घेतलेली सुट्टी:</strong> <span id="billTotalChutti">0</span> (मोफत: <span id="billFreeChutti">0</span> | वजा: <span id="billChargedChutti">0</span>)</div>
+          <div><strong>सुट्टी वजा रक्कम:</strong> -<span id="billChuttiCut">₹0</span></div>
+          <div><strong>जादा टिफिन शुल्क:</strong> +<span id="billExtraAmount">₹0</span></div>
+          <div style="margin-top: 6px;">
+            <label style="cursor: pointer; display: flex; align-items: center; gap: 6px;">
+              <input type="checkbox" id="billIncludePrevDue" checked onchange="calculateFinalBill()"> मागील बाकी जोडा (<span id="billPrevDueVal">₹0</span>)
+            </label>
+          </div>
+          <hr style="margin: 8px 0; border:none; border-top: 1px solid var(--border);">
+          <div style="font-size: 1.1rem; font-weight: 800; color: var(--primary); display:flex; justify-content:space-between;">
+            <span>एकूण देय रक्कम:</span>
+            <span id="billFinalAmount">₹0</span>
+          </div>
+        </div>
+
+        <!-- UPI QR and Pay -->
+        <div style="text-align: center; margin-bottom: 12px;">
+          <div id="billQrContainer" style="display:inline-block; padding:8px; background:#fff; border-radius:8px; border:1px solid #ddd;"></div>
+          <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">स्कॅन करून त्वरित GooglePay/PhonePe द्वारे भरा</div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <button class="btn btn-success btn-block" onclick="sendMarathiBillWA()">📲 मराठी WA बिल</button>
+          <button class="btn btn-primary btn-block" onclick="openDirectUPIPay()">📱 UPI Pay</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 8: KHARCHA (EXPENSES) -->
+  <section id="tab-kharcha" class="tab-content">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+      <h2 style="font-size: 1.15rem; font-weight: 800;">खर्च व्यवस्थापन (Expenses)</h2>
+      <button class="btn btn-primary btn-sm" onclick="openAddExpenseModal()">+ खर्च नोंदवा</button>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-label">चालू महिना खर्च</div>
+        <div class="stat-val" style="color: var(--danger);" id="expTotalMonth">₹0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">आजचा खर्च</div>
+        <div class="stat-val" style="color: var(--danger);" id="expTotalToday">₹0</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">खर्च यादी (Expense Records)</div>
+      <div id="expenseListContainer" style="font-size: 0.88rem; max-height: 350px; overflow-y: auto;">
+        <!-- Populated via JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="nav-tab active" onclick="switchTab('dashboard', this)">
+      <span class="tab-icon">🏠</span><span>डॅशबोर्ड</span>
+    </button>
+    <button class="nav-tab" onclick="switchTab('customers', this)">
+      <span class="tab-icon">👥</span><span>ग्राहक</span>
+    </button>
+    <button class="nav-tab" onclick="switchTab('orders', this)">
+      <span class="tab-icon">📦</span><span>ऑर्डर्स</span>
+    </button>
+    <button class="nav-tab" onclick="switchTab('payments', this)">
+      <span class="tab-icon">💰</span><span>पेमेंट</span>
+    </button>
+    <button class="nav-tab" onclick="switchTab('report', this)">
+      <span class="tab-icon">📊</span><span>अहवाल</span>
+    </button>
+    <button class="nav-tab" onclick="switchTab('class', this)">
+      <span class="tab-icon">👩‍🍳</span><span>किचन</span>
+    </button>
+    <button class="nav-tab" onclick="switchTab('bill', this)">
+      <span class="tab-icon">🧾</span><span>बिल</span>
+    </button>
+    <button class="nav-tab" onclick="switchTab('kharcha', this)">
+      <span class="tab-icon">💸</span><span>खर्च</span>
+    </button>
+  </nav>
+
+  <!-- MODALS -->
+  <!-- 1. Add / Edit Customer Modal -->
+  <div class="modal" id="customerModal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <div class="modal-title" id="custModalTitle">नवीन ग्राहक जोडा</div>
+        <button class="close-btn" onclick="closeModal('customerModal')">&times;</button>
+      </div>
+      <form id="customerForm" onsubmit="saveCustomer(event)">
+        <input type="hidden" id="custEditId">
+        <div class="form-group">
+          <label>अनुक्रमांक (Serial No):</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="number" id="custSerial" class="form-control" required style="width: 100px;">
+            <select id="custSerialShift" class="form-control">
+              <option value="shift">संघर्ष झाल्यास जुने पुढे सरकवा (Auto-Shift)</option>
+              <option value="manual">मॅन्युअल बदला (Manual)</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>ग्राहकाचे नाव:</label>
+          <input type="text" id="custName" class="form-control" placeholder="उदा. राहुल पाटील" required>
+        </div>
+        <div class="form-group">
+          <label>मोबाईल नंबर:</label>
+          <input type="tel" id="custPhone" class="form-control" placeholder="उदा. 9876543210" required>
+        </div>
+        <div class="form-group">
+          <label>पत्ता / भाग (Area - पंढरपूर):</label>
+          <input type="text" id="custArea" class="form-control" placeholder="उदा. स्टेशन रोड, इसबावी, शिवाजी चौक" required>
+        </div>
+        <div class="form-group">
+          <label>प्लॅन:</label>
+          <select id="custPlan" class="form-control" onchange="handlePlanChange()">
+            <option value="Basic">Basic (₹1500 दोन्ही / ₹900 दुपार / ₹700 रात्र - २ पोळ्या)</option>
+            <option value="Standard" selected>Standard (₹2000 दोन्ही / ₹1200 दुपार / ₹900 रात्र - ३ पोळ्या)</option>
+            <option value="Premium">Premium (₹2500 दोन्ही / ₹1500 दुपार / ₹1200 रात्र - ४ पोळ्या)</option>
+            <option value="Custom">Custom (मॅन्युअल दर)</option>
+          </select>
+        </div>
+        <div class="form-group" id="customPriceGroup" style="display:none;">
+          <label>कस्टम दर (₹):</label>
+          <input type="number" id="custCustomPrice" class="form-control" placeholder="रक्कम टाका">
+        </div>
+        <div class="form-group">
+          <label>जेवणाची वेळ (Meal):</label>
+          <select id="custMeal" class="form-control">
+            <option value="Both">दोन्ही (Lunch + Dinner)</option>
+            <option value="Lunch">फक्त दुपार (Lunch)</option>
+            <option value="Dinner">फक्त रात्र (Dinner)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>अन्नाचा प्रकार (Food Type):</label>
+          <select id="custFoodType" class="form-control">
+            <option value="Veg">🥦 फक्त व्हेज (Pure Veg)</option>
+            <option value="NonVeg">🍗 नॉन-व्हेज (Non-Veg)</option>
+            <option value="Both">दोन्ही (वारानुसार Veg/Non-Veg)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>जॉईनिंग तारीख (Join Date):</label>
+          <input type="date" id="custJoinDate" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label>सुरुवातीची शिल्लक / बाकी (₹) [+ अ‍ॅडव्हान्स, - बाकी]:</label>
+          <input type="number" id="custBalance" class="form-control" value="0">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">जतन करा (Save)</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. Add Payment Modal -->
+  <div class="modal" id="paymentModal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <div class="modal-title">पेमेंट नोंदवा</div>
+        <button class="close-btn" onclick="closeModal('paymentModal')">&times;</button>
+      </div>
+      <form onsubmit="savePayment(event)">
+        <div class="form-group">
+          <label>ग्राहक निवडा:</label>
+          <select id="payCustomerSelect" class="form-control" required></select>
+        </div>
+        <div class="form-group">
+          <label>रक्कम (₹):</label>
+          <input type="number" id="payAmount" class="form-control" placeholder="उदा. 1500" required>
+        </div>
+        <div class="form-group">
+          <label>पेमेंट मोड:</label>
+          <select id="payMode" class="form-control">
+            <option value="UPI">📱 UPI (GPay/PhonePe/Paytm)</option>
+            <option value="Cash">💵 रोख (Cash)</option>
+            <option value="Bank">🏦 बँक ट्रान्सफर (Bank)</option>
+            <option value="Cheque">📑 चेक (Cheque)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>UTR / संदर्भ क्र. (ऐच्छिक):</label>
+          <input type="text" id="payRef" class="form-control" placeholder="उदा. UTR 4239847293">
+        </div>
+        <div class="form-group">
+          <label>तारीख:</label>
+          <input type="date" id="payDate" class="form-control" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">पेमेंट जतन करा</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. Add Expense Modal -->
+  <div class="modal" id="expenseModal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <div class="modal-title">खर्च नोंदवा</div>
+        <button class="close-btn" onclick="closeModal('expenseModal')">&times;</button>
+      </div>
+      <form onsubmit="saveExpense(event)">
+        <div class="form-group">
+          <label>वर्गवारी (Category):</label>
+          <select id="expCategory" class="form-control">
+            <option value="भाजीपाला">भाजीपाला (Vegetables)</option>
+            <option value="किराणा">किराणा (Grocery/Atta/Rice)</option>
+            <option value="गॅस">गॅस सिलिंडर (Gas)</option>
+            <option value="दूध/दही">दूध व डेअरी (Dairy)</option>
+            <option value="चिकन/मटण">चिकन / नॉन-व्हेज</option>
+            <option value="पॅकिंग">पॅकिंग साहित्य व डबे</option>
+            <option value="इतर">इतर किरकोळ खर्च</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>तपशील / वस्तू:</label>
+          <input type="text" id="expItem" class="form-control" placeholder="उदा. कांदा बटाटा, तेल डबा" required>
+        </div>
+        <div class="form-group">
+          <label>रक्कम (₹):</label>
+          <input type="number" id="expAmount" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label>तारीख:</label>
+          <input type="date" id="expDate" class="form-control" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">खर्च साठवा</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 4. Delivery Expense Modal -->
+  <div class="modal" id="deliveryExpenseModal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <div class="modal-title">🛵 डिलिव्हरी खर्च नोंदवा</div>
+        <button class="close-btn" onclick="closeModal('deliveryExpenseModal')">&times;</button>
+      </div>
+      <form onsubmit="saveDeliveryExpense(event)">
+        <div class="form-group">
+          <label>तपशील (उदा. पेट्रोल / भत्ता):</label>
+          <input type="text" id="delivExpDesc" class="form-control" value="डिलिव्हरी पेट्रोल" required>
+        </div>
+        <div class="form-group">
+          <label>रक्कम (₹):</label>
+          <input type="number" id="delivExpAmount" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label>डिलिव्हरी बॉय / रायडर नाव:</label>
+          <input type="text" id="delivExpRider" class="form-control" placeholder="उदा. विकास" required>
+        </div>
+        <div class="form-group">
+          <label>तारीख:</label>
+          <input type="date" id="delivExpDate" class="form-control" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">जतन करा</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 5. Chutti Modal -->
+  <div class="modal" id="chuttiModal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <div class="modal-title">🏖️ सुट्टी नोंदवा (Mark Chutti)</div>
+        <button class="close-btn" onclick="closeModal('chuttiModal')">&times;</button>
+      </div>
+      <form onsubmit="saveChutti(event)">
+        <div class="form-group">
+          <label>ग्राहक निवडा:</label>
+          <select id="chuttiCustSelect" class="form-control" required></select>
+        </div>
+        <div class="form-group">
+          <label>तारीख:</label>
+          <input type="date" id="chuttiDate" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label>वेळ:</label>
+          <select id="chuttiMealType" class="form-control">
+            <option value="Both">पूर्ण दिवस (दोन्ही वेळ)</option>
+            <option value="Lunch">फक्त दुपार</option>
+            <option value="Dinner">फक्त रात्र</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">सुट्टी नोंदवा</button>
+      </form>
+      <div style="margin-top: 14px;">
+        <strong>आजच्या सुट्ट्या:</strong>
+        <div id="todayChuttiList" style="font-size: 0.85rem; margin-top: 6px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. Extra Tiffin Modal -->
+  <div class="modal" id="extraTiffinModal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <div class="modal-title">➕ एक्स्ट्रा टिफिन जोडा</div>
+        <button class="close-btn" onclick="closeModal('extraTiffinModal')">&times;</button>
+      </div>
+      <form onsubmit="saveExtraTiffin(event)">
+        <div class="form-group">
+          <label>ग्राहक निवडा (किंवा नवीन नाव):</label>
+          <select id="extraCustSelect" class="form-control"></select>
+        </div>
+        <div class="form-group">
+          <label>जादा टिफिन संख्या:</label>
+          <input type="number" id="extraQty" class="form-control" value="1" min="1" required>
+        </div>
+        <div class="form-group">
+          <label>दर टिफिन रक्कम (₹):</label>
+          <input type="number" id="extraRate" class="form-control" value="70" required>
+        </div>
+        <div class="form-group">
+          <label>वेळ:</label>
+          <select id="extraMeal" class="form-control">
+            <option value="Lunch">दुपार (Lunch)</option>
+            <option value="Dinner">रात्र (Dinner)</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">नोंदवा</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 7. Sabji Edit Modal -->
+  <div class="modal" id="sabjiModal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <div class="modal-title">🍲 आठवड्याचा भाजी मेनू</div>
+        <button class="close-btn" onclick="closeModal('sabjiModal')">&times;</button>
+      </div>
+      <div class="form-group">
+        <label>वार निवडा:</label>
+        <select id="sabjiDaySelect" class="form-control" onchange="loadDaySabjiForm()">
+          <option value="0">सोमवार (Monday)</option>
+          <option value="1">मंगळवार (Tuesday)</option>
+          <option value="2">बुधवार (Wednesday)</option>
+          <option value="3">गुरुवार (Thursday)</option>
+          <option value="4">शुक्रवार (Friday)</option>
+          <option value="5">शनिवार (Saturday)</option>
+          <option value="6">रविवार (Sunday)</option>
+        </select>
+      </div>
+      <div style="font-size:0.85rem; font-weight:700; color:var(--primary); margin: 8px 0;">🥦 व्हेज मेनू:</div>
+      <div class="form-group">
+        <label>दुपार रस्सा भाजी:</label>
+        <input type="text" id="sabjiVegGravy" class="form-control" placeholder="उदा. शेवगा रस्सा">
+      </div>
+      <div class="form-group">
+        <label>दुपार सुकी भाजी:</label>
+        <input type="text" id="sabjiVegDry" class="form-control" placeholder="उदा. मेथी / बटाटा">
+      </div>
+      <div class="form-group">
+        <label>रात्र रस्सा भाजी:</label>
+        <input type="text" id="sabjiDinnerVegGravy" class="form-control" placeholder="उदा. उसळ रस्सा">
+      </div>
+      <div class="form-group">
+        <label>रात्र सुकी भाजी:</label>
+        <input type="text" id="sabjiDinnerVegDry" class="form-control" placeholder="उदा. भेंडी फ्राय">
+      </div>
+
+      <div style="font-size:0.85rem; font-weight:700; color:var(--danger); margin: 12px 0 8px;">🍗 नॉन-व्हेज मेनू:</div>
+      <div class="form-group">
+        <label>दुपार नॉन-व्हेज रस्सा:</label>
+        <input type="text" id="sabjiNvGravy" class="form-control" placeholder="उदा. तांबडा रस्सा / चिकन">
+      </div>
+      <div class="form-group">
+        <label>दुपार नॉन-व्हेज सुका:</label>
+        <input type="text" id="sabjiNvDry" class="form-control" placeholder="उदा. सुका चिकन">
+      </div>
+      <div class="form-group">
+        <label>रात्र नॉन-व्हेज रस्सा:</label>
+        <input type="text" id="sabjiDinnerNvGravy" class="form-control" placeholder="उदा. अंडा करी">
+      </div>
+      <div class="form-group">
+        <label>रात्र नॉन-व्हेज सुका:</label>
+        <input type="text" id="sabjiDinnerNvDry" class="form-control" placeholder="उदा. एग भुर्जी">
+      </div>
+      <button class="btn btn-primary btn-block" onclick="saveSabjiDay()">हा मेनू साठवा</button>
+    </div>
+  </div>
+
+  <!-- 8. Delivery View Overlay (PIN 1234) -->
+  <div id="deliveryOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:var(--bg); z-index:2000; overflow-y:auto; padding:14px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <h2 style="font-size:1.2rem; font-weight:800; color:var(--primary);">🚴 डिलिव्हरी बॉय मोड</h2>
+      <button class="btn btn-secondary btn-sm" onclick="closeDeliveryView()">बाहेर पडा</button>
+    </div>
+    <div class="chip-group">
+      <button class="chip active" onclick="switchDeliveryTab('route', this)">📍 डिलिव्हरी मार्ग</button>
+      <button class="chip" onclick="switchDeliveryTab('tiffin', this)">🥡 डबे परतावा (Tiffin Return)</button>
+    </div>
+    <div id="delivRouteSection">
+      <div id="delivRouteCards"></div>
+    </div>
+    <div id="delivTiffinSection" style="display:none;">
+      <div class="card">
+        <div class="card-title">रिकामे डबे परतावा नोंदणी</div>
+        <div id="tiffinReturnList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9. Plan Settings Modal -->
+  <div class="modal" id="plansModal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <div class="modal-title">⚙️ प्लॅन दर व पोळी सेटिंग्ज</div>
+        <button class="close-btn" onclick="closeModal('plansModal')">&times;</button>
+      </div>
+      <div id="plansEditContainer"></div>
+      <button class="btn btn-primary btn-block" onclick="savePlansSettings()" style="margin-top:10px;">प्लॅन सेव्ह करा</button>
+    </div>
+  </div>
+
+  <!-- 10. Backup Modal -->
+  <div class="modal" id="backupModal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <div class="modal-title">💾 डेटा बॅकअप व रिस्टोर</div>
+        <button class="close-btn" onclick="closeModal('backupModal')">&times;</button>
+      </div>
+      <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:12px;">सर्व ग्राहक, पेमेंट व हिशोबाचा बॅकअप JSON स्वरूपात डाउनलोड करा किंवा परत आणा.</p>
+      <button class="btn btn-success btn-block" onclick="exportDataJSON()" style="margin-bottom:10px;">📥 बॅकअप डाउनलोड करा (Export JSON)</button>
+      <hr style="margin:12px 0; border:none; border-top:1px solid var(--border);">
+      <label style="font-size:0.85rem; font-weight:700;">बॅकअप फाईल निवडा (Restore):</label>
+      <input type="file" id="importJsonFile" accept=".json" class="form-control" style="margin-top:6px; margin-bottom:10px;">
+      <button class="btn btn-danger btn-block" onclick="importDataJSON()">📤 डेटा रिस्टोर करा</button>
+    </div>
+  </div>
+
+  <!-- 11. Broadcast Next Modal -->
+  <div class="modal" id="broadcastModal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <div class="modal-title">📲 स्टेज WA ब्रॉडकास्ट</div>
+        <button class="close-btn" onclick="closeModal('broadcastModal')">&times;</button>
+      </div>
+      <div id="broadcastContent">
+        <p style="font-size:0.9rem; margin-bottom:10px;">सध्याचा ग्राहक: <strong id="bcCustName">-</strong> (<span id="bcCustPhone">-</span>)</p>
+        <div style="background:var(--surface-2); padding:10px; border-radius:8px; font-size:0.85rem; margin-bottom:12px; white-space:pre-wrap;" id="bcMessagePreview"></div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-success" style="flex:1;" onclick="sendCurrentBCWhatsApp()">📲 WhatsApp वर पाठवा</button>
+          <button class="btn btn-primary" style="flex:1;" onclick="nextBCStep()">पुढील ग्राहक ⏩</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // FIREBASE INITIALIZATION
+    const firebaseConfig = {
+      apiKey: "AIzaSyBPQIQPbIu2cZrrmDteuh--pA-RItcTwaM",
+      databaseURL: "https://asan2337-739d0-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "asan2337-739d0",
+      appId: "1:210033293411:web:1deba83558fb5f94ea6056"
+    };
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    const db = firebase.database();
+
+    // GLOBAL DATA REFS
+    let customers = [];
+    let orders = [];
+    let payments = [];
+    let chuttis = {};
+    let extras = [];
+    let expenses = [];
+    let deliveryExpenses = [];
+    let weeklySabji = [];
+    let plans = [
+      { id: 'Basic', name: 'Basic', price: 1500, priceLunch: 900, priceDinner: 700, roti: 2, freeChutti: 3, color: '#4CAF50' },
+      { id: 'Standard', name: 'Standard', price: 2000, priceLunch: 1200, priceDinner: 900, roti: 3, freeChutti: 4, color: '#FF9800' },
+      { id: 'Premium', name: 'Premium', price: 2500, priceLunch: 1500, priceDinner: 1200, roti: 4, freeChutti: 5, color: '#E91E63' },
+      { id: 'Custom', name: 'Custom', price: 0, priceLunch: 0, priceDinner: 0, roti: 3, freeChutti: 0, color: '#9C27B0' }
+    ];
+    let upiId = "9876543210@upi";
+    let upiName = "Asan Tiffin Pandharpur";
+    let returnedTiffins = {};
+
+    const TODAY_KEY = new Date().toISOString().split('T')[0];
+
+    // THEME HANDLING (Light, Dark, Black)
+    const themes = ['light', 'dark', 'black'];
+    let currentThemeIdx = themes.indexOf(localStorage.getItem('asan_theme') || 'light');
+    if (currentThemeIdx === -1) currentThemeIdx = 0;
+    applyTheme(themes[currentThemeIdx]);
+
+    function toggleTheme() {
+      currentThemeIdx = (currentThemeIdx + 1) % themes.length;
+      const theme = themes[currentThemeIdx];
+      applyTheme(theme);
+      localStorage.setItem('asan_theme', theme);
+    }
+
+    function applyTheme(t) {
+      document.documentElement.setAttribute('data-theme', t);
+      const btn = document.getElementById('themeBtn');
+      if (btn) btn.textContent = t === 'light' ? '🌙' : (t === 'dark' ? '⬛' : '☀️');
+    }
+
+    // TAB SWITCHING
+    function switchTab(tabName, el) {
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+      const target = document.getElementById('tab-' + tabName);
+      if (target) target.classList.add('active');
+      if (el) el.classList.add('active');
+      window.scrollTo(0, 0);
+    }
+
+    // MODAL HELPERS
+    function openModal(id) { document.getElementById(id).classList.add('show'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+    // NOTEPAD LOGIC
+    document.getElementById('ownerNotepad').value = localStorage.getItem('asan_owner_notes') || '';
+    function saveOwnerNote() {
+      const val = document.getElementById('ownerNotepad').value;
+      localStorage.setItem('asan_owner_notes', val);
+      alert('टिपण सेव्ह झाले!');
+    }
+    function insertNoteTag(tag) {
+      const pad = document.getElementById('ownerNotepad');
+      pad.value += tag;
+      pad.focus();
+    }
+
+    // FIREBASE REALTIME LISTENERS
+    function initFirebaseListeners() {
+      db.ref('CUSTOMERS').on('value', snap => {
+        const val = snap.val();
+        customers = val ? (Array.isArray(val) ? val.filter(Boolean) : Object.keys(val).map(k => ({id: k, ...val[k]}))) : [];
+        customers.sort((a,b) => (Number(a.serial)||0) - (Number(b.serial)||0));
+        renderDashboard();
+        renderCustomers();
+        renderOrders();
+        populateCustomerDropdowns();
+        calculateKitchenRoti();
+        renderReport();
+      });
+
+      db.ref('ORDERS').on('value', snap => {
+        const val = snap.val();
+        orders = val ? (Array.isArray(val) ? val.filter(Boolean) : Object.keys(val).map(k => ({id: k, ...val[k]}))) : [];
+        renderOrders();
+      });
+
+      db.ref('PAYMENTS').on('value', snap => {
+        const val = snap.val();
+        payments = val ? (Array.isArray(val) ? val.filter(Boolean) : Object.keys(val).map(k => ({id: k, ...val[k]}))) : [];
+        renderPayments();
+        renderDashboard();
+      });
+
+      db.ref('CHUTTIS').on('value', snap => {
+        chuttis = snap.val() || {};
+        renderDashboard();
+      });
+
+      db.ref('EXTRAS').on('value', snap => {
+        const val = snap.val();
+        extras = val ? (Array.isArray(val) ? val.filter(Boolean) : Object.keys(val).map(k => ({id: k, ...val[k]}))) : [];
+        renderDashboard();
+      });
+
+      db.ref('EXPENSES').on('value', snap => {
+        const val = snap.val();
+        expenses = val ? (Array.isArray(val) ? val.filter(Boolean) : Object.keys(val).map(k => ({id: k, ...val[k]}))) : [];
+        renderExpenses();
+        renderPayments();
+      });
+
+      db.ref('DELIVERY_EXPENSES').on('value', snap => {
+        const val = snap.val();
+        deliveryExpenses = val ? (Array.isArray(val) ? val.filter(Boolean) : Object.keys(val).map(k => ({id: k, ...val[k]}))) : [];
+        renderPayments();
+      });
+
+      db.ref('WEEKLY_SABJI').on('value', snap => {
+        const val = snap.val();
+        if (val) {
+          weeklySabji = Array.isArray(val) ? val : Object.values(val);
+        } else {
+          initDefaultSabji();
+        }
+        renderTodaySabji();
+      });
+
+      db.ref('PLANS').on('value', snap => {
+        const val = snap.val();
+        if (val) {
+          plans = Array.isArray(val) ? val : Object.values(val);
+        }
+        renderDashboard();
+      });
+
+      db.ref('RETURNED_TIFFINS').on('value', snap => {
+        returnedTiffins = snap.val() || {};
+      });
+    }
+
+    function initDefaultSabji() {
+      weeklySabji = [
+        { day: 'Monday', dayH: 'सोमवार', gravy: 'शेवगा रस्सा', dry: 'बटाटा भाजी', dinner_gravy: 'मूग रस्सा', dinner_dry: 'मेथी सुकी', nv_gravy: 'तांबडा रस्सा', nv_dry: 'सुका चिकन', nv_dinner_gravy: 'अंडा करी', nv_dinner_dry: 'एग भुर्जी' },
+        { day: 'Tuesday', dayH: 'मंगळवार', gravy: 'वांगी मसाला', dry: 'कोबी चणाडाळ', dinner_gravy: 'छोले मसाला', dinner_dry: 'भेंडी फ्राय', nv_gravy: 'चिकन रस्सा', nv_dry: 'चिकन फ्राय', nv_dinner_gravy: 'अंडा रस्सा', nv_dinner_dry: 'अंडा फ्राय' },
+        { day: 'Wednesday', dayH: 'बुधवार', gravy: 'मटकी उसळ रस्सा', dry: 'फ्लॉवर भाजी', dinner_gravy: 'पालक पनीर', dinner_dry: 'काकडी कोशिंबीर', nv_gravy: 'मटण रस्सा', nv_dry: 'मटण सुका', nv_dinner_gravy: 'चिकन करी', nv_dinner_dry: 'चिकन टिक्का' },
+        { day: 'Thursday', dayH: 'गुरुवार', gravy: 'काजू करी (व्हेज)', dry: 'दुधी भोपळा', dinner_gravy: 'दाल तडका', dinner_dry: 'शिमला मिरची', nv_gravy: 'अंडा करी', nv_dry: 'अंडा मसाला', nv_dinner_gravy: 'अंडा मसाला', nv_dinner_dry: 'ऑम्लेट' },
+        { day: 'Friday', dayH: 'शुक्रवार', gravy: 'राजमा रस्सा', dry: 'कारले फ्राय', dinner_gravy: 'पिठलं भाकरी', dinner_dry: 'ठेचा', nv_gravy: 'चिकन तांबडा', nv_dry: 'चिकन मसाला', nv_dinner_gravy: 'अंडा भुर्जी', nv_dinner_dry: 'अंडा सुका' },
+        { day: 'Saturday', dayH: 'शनिवार', gravy: 'पावभाजी / वाटाणा', dry: 'मिरची भजी/कोरडी', dinner_gravy: 'कढी खिचडी', dinner_dry: 'आलू जिरा', nv_gravy: 'चिकन बिर्याणी ग्रेव्ही', nv_dry: 'चिकन रोस्ट', nv_dinner_gravy: 'अंडा रस्सा', nv_dinner_dry: 'अंडा मसाला' },
+        { day: 'Sunday', dayH: 'रविवार', gravy: 'पनीर बटर मसाला', dry: 'व्हेज पुलाव', dinner_gravy: 'दाल मखनी', dinner_dry: 'जीरा राईस', nv_gravy: 'स्पेशल मटण थाळी', nv_dry: 'सुका मटण', nv_dinner_gravy: 'चिकन मसाला', nv_dinner_dry: 'चिकन फ्राय' }
+      ];
+      db.ref('WEEKLY_SABJI').set(weeklySabji);
+    }
+
+    // DASHBOARD RENDERING
+    function renderDashboard() {
+      const activeCusts = customers.filter(c => !c.inactive);
+      document.getElementById('topActiveCount').textContent = activeCusts.length + ' ग्राहक';
+
+      // Due alert card
+      const dueCusts = activeCusts.filter(c => (Number(c.balance) || 0) < 0);
+      const dueCard = document.getElementById('dueAlertCard');
+      if (dueCusts.length > 0) {
+        dueCard.style.display = 'block';
+        document.getElementById('dueCustCount').textContent = dueCusts.length;
+        document.getElementById('dueListPreview').innerHTML = dueCusts.map(c => `
+          <div style="display:flex; justify-content:space-between; padding:3px 0; border-bottom:1px solid rgba(0,0,0,0.05);">
+            <span>#${c.serial} ${c.name} (${c.area})</span>
+            <span style="font-weight:800; color:var(--danger);">₹${Math.abs(c.balance)} बाकी</span>
+          </div>
+        `).join('');
+      } else {
+        dueCard.style.display = 'none';
+      }
+
+      // Roti calculation
+      calculateAndRenderRotis();
+
+      // Extra tiffins today
+      const todayExtras = extras.filter(e => e.date === TODAY_KEY);
+      const extraCount = todayExtras.reduce((acc, e) => acc + (Number(e.qty) || 0), 0);
+      document.getElementById('extraTiffinCount').textContent = extraCount;
+
+      // Chutti count today
+      document.getElementById('chuttiCount').textContent = todayChuttiCustIds.length;
+    }
+
+    let rotiMealFilter = 'All'; // 'All' | 'Lunch' | 'Dinner'
+
+    function setRotiMealFilter(filter, el) {
+      rotiMealFilter = filter;
+      document.querySelectorAll('#rotiCounterCard .chip').forEach(c => c.classList.remove('active'));
+      if (el) el.classList.add('active');
+      calculateAndRenderRotis();
+    }
+
+    function toggleRotiExcludedDetails() {
+      const list = document.getElementById('rotiExcludedDetailsList');
+      const icon = document.getElementById('rotiExcludedToggleIcon');
+      if (list.style.display === 'none' || !list.style.display) {
+        list.style.display = 'block';
+        icon.textContent = '▲';
+      } else {
+        list.style.display = 'none';
+        icon.textContent = '▼';
+      }
+    }
+
+    function calculateAndRenderRotis() {
+      // 1. Inactive customers are completely excluded
+      const activeCusts = customers.filter(c => !c.inactive);
+      const inactiveCusts = customers.filter(c => c.inactive);
+
+      // 2. Customers on leave today
+      const todayChuttis = chuttis[TODAY_KEY] || {};
+
+      let lunchRotis = 0;
+      let lunchCustCount = 0;
+      let dinnerRotis = 0;
+      let dinnerCustCount = 0;
+
+      let planRotiBreakdown = {};
+      plans.forEach(p => {
+        planRotiBreakdown[p.name] = { custs: 0, rotis: 0, perCust: Number(p.roti) || 3 };
+      });
+
+      const excludedList = [];
+
+      // Add inactive customers to excludedList
+      inactiveCusts.forEach(c => {
+        excludedList.push({
+          name: c.name,
+          serial: c.serial,
+          reason: '⏸️ निष्क्रिय (Inactive)'
+        });
+      });
+
+      activeCusts.forEach(c => {
+        const planObj = plans.find(p => p.name === c.plan) || { name: c.plan || 'Standard', roti: 3 };
+        const rotisPerMeal = Number(c.customRoti) || Number(planObj.roti) || 3;
+        const mealPref = c.meal || 'Both'; // 'Lunch' | 'Dinner' | 'Both'
+
+        // Check if customer is on leave today
+        const chuttiInfo = todayChuttis[c.id];
+        let onLeaveLunch = false;
+        let onLeaveDinner = false;
+
+        if (chuttiInfo) {
+          const leaveType = typeof chuttiInfo === 'object' && chuttiInfo.mealType ? chuttiInfo.mealType : 'Both';
+          if (leaveType === 'Both') {
+            onLeaveLunch = true;
+            onLeaveDinner = true;
+            excludedList.push({
+              name: c.name,
+              serial: c.serial,
+              reason: '🏖️ पूर्ण दिवस सुट्टी'
+            });
+          } else if (leaveType === 'Lunch') {
+            onLeaveLunch = true;
+            excludedList.push({
+              name: c.name,
+              serial: c.serial,
+              reason: '🏖️ दुपार सुट्टी'
+            });
+          } else if (leaveType === 'Dinner') {
+            onLeaveDinner = true;
+            excludedList.push({
+              name: c.name,
+              serial: c.serial,
+              reason: '🏖️ रात्र सुट्टी'
+            });
+          }
+        }
+
+        // Evaluate Lunch requirement based on active plan & meal preference
+        let needsLunch = false;
+        if ((mealPref === 'Lunch' || mealPref === 'Both') && !onLeaveLunch) {
+          needsLunch = true;
+          lunchRotis += rotisPerMeal;
+          lunchCustCount++;
+        }
+
+        // Evaluate Dinner requirement based on active plan & meal preference
+        let needsDinner = false;
+        if ((mealPref === 'Dinner' || mealPref === 'Both') && !onLeaveDinner) {
+          needsDinner = true;
+          dinnerRotis += rotisPerMeal;
+          dinnerCustCount++;
+        }
+
+        // Plan Breakdown based on current view filter
+        let rotisForThisCust = 0;
+        if (rotiMealFilter === 'Lunch' && needsLunch) {
+          rotisForThisCust = rotisPerMeal;
+        } else if (rotiMealFilter === 'Dinner' && needsDinner) {
+          rotisForThisCust = rotisPerMeal;
+        } else if (rotiMealFilter === 'All') {
+          if (needsLunch) rotisForThisCust += rotisPerMeal;
+          if (needsDinner) rotisForThisCust += rotisPerMeal;
+        }
+
+        if (rotisForThisCust > 0) {
+          if (!planRotiBreakdown[planObj.name]) {
+            planRotiBreakdown[planObj.name] = { custs: 0, rotis: 0, perCust: rotisPerMeal };
+          }
+          planRotiBreakdown[planObj.name].custs++;
+          planRotiBreakdown[planObj.name].rotis += rotisForThisCust;
+        }
+      });
+
+      // Factor in extra tiffins for today if any
+      const todayExtras = extras.filter(e => e.date === TODAY_KEY);
+      todayExtras.forEach(ex => {
+        const qty = Number(ex.qty) || 1;
+        const extraRotis = qty * 3; // 3 rotis per extra tiffin
+        if (ex.meal === 'Lunch' || !ex.meal) {
+          lunchRotis += extraRotis;
+        }
+        if (ex.meal === 'Dinner') {
+          dinnerRotis += extraRotis;
+        }
+      });
+
+      // Calculate display total based on selected filter
+      let displayTotal = 0;
+      if (rotiMealFilter === 'Lunch') {
+        displayTotal = lunchRotis;
+      } else if (rotiMealFilter === 'Dinner') {
+        displayTotal = dinnerRotis;
+      } else {
+        displayTotal = lunchRotis + dinnerRotis;
+      }
+
+      // Update UI elements
+      const totalRotiEl = document.getElementById('totalRotiCount');
+      if (totalRotiEl) totalRotiEl.textContent = displayTotal + ' पोळ्या';
+      const lunchValEl = document.getElementById('rotiLunchVal');
+      if (lunchValEl) lunchValEl.textContent = lunchRotis + ' पोळ्या';
+      const lunchCustsEl = document.getElementById('rotiLunchCusts');
+      if (lunchCustsEl) lunchCustsEl.textContent = lunchCustCount + ' ग्राहक';
+      const dinnerValEl = document.getElementById('rotiDinnerVal');
+      if (dinnerValEl) dinnerValEl.textContent = dinnerRotis + ' पोळ्या';
+      const dinnerCustsEl = document.getElementById('rotiDinnerCusts');
+      if (dinnerCustsEl) dinnerCustsEl.textContent = dinnerCustCount + ' ग्राहक';
+
+      const totalExcluded = excludedList.length;
+      const excludedValEl = document.getElementById('rotiExcludedVal');
+      if (excludedValEl) excludedValEl.textContent = totalExcluded;
+      const excludedSummaryTitle = document.getElementById('rotiExcludedSummaryTitle');
+      if (excludedSummaryTitle) excludedSummaryTitle.textContent = `ℹ️ सुट्टी व निष्क्रिय ग्राहक (${totalExcluded} वगळलेले)`;
+
+      // Populate plan breakdown cards
+      const breakdownEl = document.getElementById('rotiBreakdown');
+      if (breakdownEl) {
+        breakdownEl.innerHTML = Object.keys(planRotiBreakdown).map(name => {
+          const item = planRotiBreakdown[name];
+          return `
+            <div class="stat-box">
+              <div class="stat-label">${name} (${item.perCust} पोळ्या)</div>
+              <div class="stat-val" style="font-size:1.15rem;">${item.rotis} <span style="font-size:0.75rem; font-weight:normal; color:var(--text-muted);">(${item.custs} ग्राहक)</span></div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // Populate excluded list details
+      const excludedListEl = document.getElementById('rotiExcludedDetailsList');
+      if (excludedListEl) {
+        if (excludedList.length > 0) {
+          excludedListEl.innerHTML = excludedList.map(item => `
+            <div style="display:flex; justify-content:space-between; padding:3px 0; border-bottom:1px solid rgba(0,0,0,0.04);">
+              <span>#${item.serial || '-'} ${item.name}</span>
+              <span style="color:var(--danger); font-weight:600;">${item.reason}</span>
+            </div>
+          `).join('');
+        } else {
+          excludedListEl.innerHTML = '<div style="color:var(--text-muted);">आज कोणतीही सुट्टी किंवा निष्क्रिय ग्राहक नाही.</div>';
+        }
+      }
+    }
+
+    function renderTodaySabji() {
+      if (!weeklySabji.length) return;
+      const dayIdx = (new Date().getDay() + 6) % 7; // Monday = 0
+      const todayMenu = weeklySabji[dayIdx] || weeklySabji[0];
+      const hour = new Date().getHours();
+      const isDinner = hour >= 15;
+
+      document.getElementById('todaySabjiDay').textContent = `🍲 आजची भाजी (${todayMenu.dayH} - ${isDinner ? 'रात्र' : 'दुपार'})`;
+      document.getElementById('dashVegGravy').textContent = isDinner ? (todayMenu.dinner_gravy || todayMenu.gravy) : todayMenu.gravy;
+      document.getElementById('dashVegDry').textContent = isDinner ? (todayMenu.dinner_dry || todayMenu.dry) : todayMenu.dry;
+      document.getElementById('dashNvGravy').textContent = isDinner ? (todayMenu.nv_dinner_gravy || todayMenu.nv_gravy) : todayMenu.nv_gravy;
+      document.getElementById('dashNvDry').textContent = isDinner ? (todayMenu.nv_dinner_dry || todayMenu.nv_dry) : todayMenu.nv_dry;
+    }
+
+    // CUSTOMERS MANAGEMENT
+    let customerFilter = 'all';
+    function filterCustomers(filter, el) {
+      customerFilter = filter;
+      el.parentElement.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+      renderCustomers();
+    }
+
+    function renderCustomers() {
+      const container = document.getElementById('customersListContainer');
+      const q = (document.getElementById('custSearchInput').value || '').toLowerCase();
+
+      let filtered = customers.filter(c => {
+        const matchesQ = (c.name || '').toLowerCase().includes(q) ||
+                         (c.phone || '').includes(q) ||
+                         (c.area || '').toLowerCase().includes(q);
+        if (!matchesQ) return false;
+
+        if (customerFilter === 'all') return true;
+        if (customerFilter === 'inactive') return c.inactive;
+        if (customerFilter === 'Lunch') return c.meal === 'Lunch';
+        if (customerFilter === 'Dinner') return c.meal === 'Dinner';
+        if (customerFilter === 'Both') return c.meal === 'Both';
+        if (customerFilter === 'due') return (Number(c.balance) || 0) < 0;
+        if (customerFilter === 'advance') return (Number(c.balance) || 0) > 0;
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">कोणताही ग्राहक सापडला नाही.</div>';
+        return;
+      }
+
+      container.innerHTML = filtered.map(c => {
+        const bal = Number(c.balance) || 0;
+        const balText = bal < 0 ? `बाकी: ₹${Math.abs(bal)}` : (bal > 0 ? `अ‍ॅडव्हान्स: ₹${bal}` : `हिशोब पूर्ण`);
+        const balClass = bal < 0 ? 'has-due' : (bal > 0 ? 'has-adv' : '');
+        const foodTag = c.foodType === 'Veg' ? '<span class="tag-veg">🥦 व्हेज</span>' : (c.foodType === 'NonVeg' ? '<span class="tag-nv">🍗 नॉन-व्हेज</span>' : '<span class="tag-both">दोन्ही</span>');
+
+        return `
+          <div class="cust-card ${c.inactive ? 'inactive' : ''}">
+            <div class="cust-header">
+              <span class="cust-id">#${c.serial || '-'}</span>
+              <span class="cust-name">${c.name}</span>
+              <span class="cust-due ${balClass}">${balText}</span>
+            </div>
+            <div class="cust-meta">
+              <span>📍 ${c.area || 'पंढरपूर'}</span>
+              <span>🏷️ ${c.plan}</span>
+              <span>⏰ ${c.meal}</span>
+              ${foodTag}
+              <span>📅 ${c.joinDate || '-'}</span>
+            </div>
+            <div class="cust-actions">
+              <button class="btn btn-secondary btn-sm" onclick="editCustomer('${c.id}')">✏️ बदल</button>
+              <button class="btn btn-success btn-sm" onclick="sendCustomerWA('${c.phone}', '${c.name}', ${bal})">📲 WA</button>
+              <a href="tel:${c.phone}" class="btn btn-secondary btn-sm">📞 कॉल</a>
+              <button class="btn btn-secondary btn-sm" onclick="toggleCustomerActive('${c.id}', ${c.inactive ? 'false' : 'true'})">
+                ${c.inactive ? '▶️ सुरू करा' : '⏸ बंद करा'}
+              </button>
+              <button class="btn btn-danger btn-sm" onclick="deleteCustomer('${c.id}')">🗑 डिलीट</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function openAddCustomerModal() {
+      document.getElementById('custEditId').value = '';
+      document.getElementById('custModalTitle').textContent = 'नवीन ग्राहक जोडा';
+      document.getElementById('customerForm').reset();
+      const nextSerial = customers.length ? Math.max(...customers.map(c => Number(c.serial) || 0)) + 1 : 1;
+      document.getElementById('custSerial').value = nextSerial;
+      document.getElementById('custJoinDate').value = TODAY_KEY;
+      openModal('customerModal');
+    }
+
+    function editCustomer(id) {
+      const c = customers.find(x => x.id == id);
+      if (!c) return;
+      document.getElementById('custEditId').value = c.id;
+      document.getElementById('custModalTitle').textContent = 'ग्राहक माहिती बदला';
+      document.getElementById('custSerial').value = c.serial;
+      document.getElementById('custName').value = c.name;
+      document.getElementById('custPhone').value = c.phone;
+      document.getElementById('custArea').value = c.area;
+      document.getElementById('custPlan').value = c.plan;
+      document.getElementById('custMeal').value = c.meal;
+      document.getElementById('custFoodType').value = c.foodType;
+      document.getElementById('custJoinDate').value = c.joinDate || TODAY_KEY;
+      document.getElementById('custBalance').value = c.balance || 0;
+      handlePlanChange();
+      if (c.customPrice) document.getElementById('custCustomPrice').value = c.customPrice;
+      openModal('customerModal');
+    }
+
+    function handlePlanChange() {
+      const plan = document.getElementById('custPlan').value;
+      document.getElementById('customPriceGroup').style.display = (plan === 'Custom') ? 'block' : 'none';
+    }
+
+    function saveCustomer(e) {
+      e.preventDefault();
+      const editId = document.getElementById('custEditId').value;
+      let serial = Number(document.getElementById('custSerial').value) || 1;
+      const shiftMode = document.getElementById('custSerialShift').value;
+
+      // Handle serial auto-shift
+      if (shiftMode === 'shift') {
+        customers.forEach(c => {
+          if (c.id !== editId && Number(c.serial) >= serial) {
+            c.serial = Number(c.serial) + 1;
+            db.ref('CUSTOMERS/' + c.id + '/serial').set(c.serial);
+          }
+        });
+      }
+
+      const custData = {
+        serial: serial,
+        name: document.getElementById('custName').value.trim(),
+        phone: document.getElementById('custPhone').value.trim(),
+        area: document.getElementById('custArea').value.trim(),
+        plan: document.getElementById('custPlan').value,
+        meal: document.getElementById('custMeal').value,
+        foodType: document.getElementById('custFoodType').value,
+        joinDate: document.getElementById('custJoinDate').value,
+        balance: Number(document.getElementById('custBalance').value) || 0,
+        customPrice: document.getElementById('custPlan').value === 'Custom' ? Number(document.getElementById('custCustomPrice').value) || 0 : null
+      };
+
+      if (editId) {
+        db.ref('CUSTOMERS/' + editId).update(custData).then(() => closeModal('customerModal'));
+      } else {
+        const newRef = db.ref('CUSTOMERS').push();
+        custData.id = newRef.key;
+        custData.inactive = false;
+        newRef.set(custData).then(() => closeModal('customerModal'));
+      }
+    }
+
+    function toggleCustomerActive(id, newStatus) {
+      db.ref('CUSTOMERS/' + id + '/inactive').set(newStatus);
+    }
+
+    function deleteCustomer(id) {
+      if (confirm('या ग्राहकास खरोखर डिलीट करायचे आहे का?')) {
+        db.ref('CUSTOMERS/' + id).remove();
+      }
+    }
+
+    function sendCustomerWA(phone, name, balance) {
+      let msg = `नमस्कार ${name} जी! आसन टिफिन, पंढरपूर. `;
+      if (balance < 0) {
+        msg += `आपले चालू महिन्याचे टिफिन बिल ₹${Math.abs(balance)} बाकी आहे. कृपया खालील UPI वर भरणा करावा: ${upiId} धन्यवाद!`;
+      } else {
+        msg += `आपली सेवा सुरळीत सुरू आहे. काही अडचण असल्यास संपर्क करा. धन्यवाद!`;
+      }
+      const cleanPhone = phone.replace(/\D/g, '');
+      const waNum = cleanPhone.length === 10 ? '91' + cleanPhone : cleanPhone;
+      window.open(`https://wa.me/${waNum}?text=${encodeURIComponent(msg)}`, '_blank');
+    }
+
+    // ORDERS MANAGEMENT
+    let orderFilter = 'all';
+    let groupPackingView = false;
+
+    function filterOrders(filter, el) {
+      orderFilter = filter;
+      el.parentElement.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+      renderOrders();
+    }
+
+    function togglePackingGrouping() {
+      groupPackingView = !groupPackingView;
+      document.getElementById('groupPackingBtn').classList.toggle('btn-primary', groupPackingView);
+      renderOrders();
+    }
+
+    function renderOrders() {
+      const container = document.getElementById('ordersListContainer');
+      const activeCusts = customers.filter(c => !c.inactive);
+      const todayChuttiCustIds = (chuttis[TODAY_KEY] ? Object.keys(chuttis[TODAY_KEY]) : []);
+
+      // Ensure orders are generated/mapped for today's active customers
+      let orderMap = {};
+      orders.forEach(o => { orderMap[o.custId] = o; });
+
+      let cooking = 0, packed = 0, onway = 0;
+
+      activeCusts.forEach(c => {
+        const isChutti = todayChuttiCustIds.includes(String(c.id));
+        const currentOrder = orderMap[c.id] || {
+          id: 'ord_' + c.id,
+          custId: c.id,
+          name: c.name,
+          plan: c.plan,
+          meal: c.meal,
+          foodType: c.foodType,
+          area: c.area,
+          phone: c.phone,
+          status: isChutti ? 'skipped' : 'pending',
+          stage: 'cooking'
+        };
+
+        if (currentOrder.status !== 'skipped') {
+          if (currentOrder.stage === 'cooking') cooking++;
+          else if (currentOrder.stage === 'packed') packed++;
+          else if (currentOrder.stage === 'onway') onway++;
+        }
+      });
+
+      document.getElementById('countCooking').textContent = cooking;
+      document.getElementById('countPacked').textContent = packed;
+      document.getElementById('countOnway').textContent = onway;
+
+      let filteredCusts = activeCusts.filter(c => {
+        const ord = orderMap[c.id] || {};
+        const isChutti = todayChuttiCustIds.includes(String(c.id));
+        if (orderFilter === 'pending') return ord.status !== 'delivered' && !isChutti;
+        if (orderFilter === 'done') return ord.status === 'delivered';
+        if (orderFilter === 'skip') return isChutti;
+        if (orderFilter === 'Lunch') return c.meal === 'Lunch' || c.meal === 'Both';
+        if (orderFilter === 'Dinner') return c.meal === 'Dinner' || c.meal === 'Both';
+        if (orderFilter === 'Veg') return c.foodType === 'Veg';
+        if (orderFilter === 'NonVeg') return c.foodType === 'NonVeg';
+        return true;
+      });
+
+      if (groupPackingView) {
+        const vegLunch = filteredCusts.filter(c => c.foodType === 'Veg' && (c.meal === 'Lunch' || c.meal === 'Both'));
+        const vegDinner = filteredCusts.filter(c => c.foodType === 'Veg' && c.meal === 'Dinner');
+        const nvLunch = filteredCusts.filter(c => c.foodType !== 'Veg' && (c.meal === 'Lunch' || c.meal === 'Both'));
+        const nvDinner = filteredCusts.filter(c => c.foodType !== 'Veg' && c.meal === 'Dinner');
+
+        container.innerHTML = `
+          <div class="card">
+            <div class="card-title">🥦 व्हेज टिफिन्स (${vegLunch.length + vegDinner.length})</div>
+            <strong>दुपार (Lunch - ${vegLunch.length}):</strong>
+            <div style="font-size:0.85rem; margin-bottom:8px;">${vegLunch.map(c => `#${c.serial} ${c.name} (${c.plan})`).join(', ') || 'काही नाही'}</div>
+            <strong>रात्र (Dinner - ${vegDinner.length}):</strong>
+            <div style="font-size:0.85rem;">${vegDinner.map(c => `#${c.serial} ${c.name} (${c.plan})`).join(', ') || 'काही नाही'}</div>
+          </div>
+          <div class="card">
+            <div class="card-title">🍗 नॉन-व्हेज टिफिन्स (${nvLunch.length + nvDinner.length})</div>
+            <strong>दुपार (Lunch - ${nvLunch.length}):</strong>
+            <div style="font-size:0.85rem; margin-bottom:8px;">${nvLunch.map(c => `#${c.serial} ${c.name} (${c.plan})`).join(', ') || 'काही नाही'}</div>
+            <strong>रात्र (Dinner - ${nvDinner.length}):</strong>
+            <div style="font-size:0.85rem;">${nvDinner.map(c => `#${c.serial} ${c.name} (${c.plan})`).join(', ') || 'काही नाही'}</div>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filteredCusts.map(c => {
+        const ord = orderMap[c.id] || { stage: 'cooking', status: 'pending' };
+        const isChutti = todayChuttiCustIds.includes(String(c.id));
+        return `
+          <div class="cust-card">
+            <div class="cust-header">
+              <span class="cust-id">#${c.serial}</span>
+              <span class="cust-name">${c.name} (${c.area})</span>
+              <span>${isChutti ? '<span style="color:var(--danger); font-weight:700;">🏖️ सुट्टी</span>' : (ord.status === 'delivered' ? '✅ पोहचले' : '⏳ बाकी')}</span>
+            </div>
+            <div class="cust-meta">
+              <span>🏷️ ${c.plan}</span>
+              <span>⏰ ${c.meal}</span>
+              <span>${c.foodType === 'Veg' ? '🥦 व्हेज' : '🍗 नॉन-व्हेज'}</span>
+            </div>
+            <div style="display:flex; gap:6px; margin-top:4px;">
+              <button class="btn btn-sm ${ord.stage === 'cooking' ? 'btn-primary' : 'btn-secondary'}" onclick="setOrderStage('${c.id}', 'cooking')">🍳 Cooking</button>
+              <button class="btn btn-sm ${ord.stage === 'packed' ? 'btn-primary' : 'btn-secondary'}" onclick="setOrderStage('${c.id}', 'packed')">📦 Packed</button>
+              <button class="btn btn-sm ${ord.stage === 'onway' ? 'btn-primary' : 'btn-secondary'}" onclick="setOrderStage('${c.id}', 'onway')">🚴 On Way</button>
+              <button class="btn btn-sm btn-success" onclick="markOrderDelivered('${c.id}')">✅ Delivered</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function setOrderStage(custId, stage) {
+      db.ref('ORDERS/' + custId).update({
+        custId: custId,
+        stage: stage,
+        date: TODAY_KEY
+      });
+    }
+
+    function markOrderDelivered(custId) {
+      db.ref('ORDERS/' + custId).update({
+        custId: custId,
+        status: 'delivered',
+        stage: 'delivered',
+        deliveredAt: new Date().toLocaleTimeString()
+      });
+    }
+
+    function markAllStage(stage) {
+      if (!confirm(`सर्व आजच्या ऑर्डर्स '${stage}' स्टेजवर करायच्या का?`)) return;
+      const updates = {};
+      customers.filter(c => !c.inactive).forEach(c => {
+        updates['ORDERS/' + c.id + '/stage'] = stage;
+        updates['ORDERS/' + c.id + '/date'] = TODAY_KEY;
+      });
+      db.ref().update(updates);
+    }
+
+    // BROADCAST MODAL (NEXT BUTTON)
+    let broadcastCusts = [];
+    let currentBCIndex = 0;
+
+    function openWABroadcastModal() {
+      broadcastCusts = customers.filter(c => !c.inactive);
+      if (!broadcastCusts.length) return alert('कोणतेही सक्रिय ग्राहक नाहीत.');
+      currentBCIndex = 0;
+      showCurrentBC();
+      openModal('broadcastModal');
+    }
+
+    function showCurrentBC() {
+      if (currentBCIndex >= broadcastCusts.length) {
+        alert('सर्व ग्राहकांचे ब्रॉडकास्ट पूर्ण झाले!');
+        closeModal('broadcastModal');
+        return;
+      }
+      const c = broadcastCusts[currentBCIndex];
+      document.getElementById('bcCustName').textContent = c.name;
+      document.getElementById('bcCustPhone').textContent = c.phone;
+      const msg = `नमस्कार ${c.name} जी! आजचे गरमागरम आसन टिफिन तयार होऊन डिलिव्हरीसाठी निघाले आहे 🚴 कृपया वेळेवर डबा स्वीकारावा. धन्यवाद!`;
+      document.getElementById('bcMessagePreview').textContent = msg;
+    }
+
+    function sendCurrentBCWhatsApp() {
+      const c = broadcastCusts[currentBCIndex];
+      const msg = document.getElementById('bcMessagePreview').textContent;
+      const cleanPhone = c.phone.replace(/\D/g, '');
+      const waNum = cleanPhone.length === 10 ? '91' + cleanPhone : cleanPhone;
+      window.open(`https://wa.me/${waNum}?text=${encodeURIComponent(msg)}`, '_blank');
+    }
+
+    function nextBCStep() {
+      currentBCIndex++;
+      showCurrentBC();
+    }
+
+    // PAYMENTS MANAGEMENT
+    function renderPayments() {
+      const activeCusts = customers.filter(c => !c.inactive);
+      let totalDue = 0;
+      let totalAdvance = 0;
+
+      activeCusts.forEach(c => {
+        const bal = Number(c.balance) || 0;
+        if (bal < 0) totalDue += Math.abs(bal);
+        else if (bal > 0) totalAdvance += bal;
+      });
+
+      document.getElementById('payTotalDue').textContent = '₹' + totalDue;
+      document.getElementById('payTotalAdvance').textContent = '₹' + totalAdvance;
+
+      // Calculate P&L
+      const expectedRevenue = activeCusts.reduce((acc, c) => {
+        if (c.plan === 'Custom') return acc + (Number(c.customPrice) || 0);
+        const p = plans.find(x => x.name === c.plan) || plans[0];
+        if (c.meal === 'Lunch') return acc + (p.priceLunch || 1000);
+        if (c.meal === 'Dinner') return acc + (p.priceDinner || 800);
+        return acc + (p.price || 2000);
+      }, 0);
+
+      const receivedTotal = payments.reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
+      const kitchenExpTotal = expenses.reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
+      const deliveryExpTotal = deliveryExpenses.reduce((acc, d) => acc + (Number(d.amount) || 0), 0);
+      const netProfit = receivedTotal - kitchenExpTotal - deliveryExpTotal;
+
+      document.getElementById('plExpected').textContent = '₹' + expectedRevenue;
+      document.getElementById('plReceived').textContent = '₹' + receivedTotal;
+      document.getElementById('plKitchenExp').textContent = '₹' + kitchenExpTotal;
+      document.getElementById('plDeliveryExp').textContent = '₹' + deliveryExpTotal;
+      document.getElementById('plNetProfit').textContent = '₹' + netProfit;
+
+      // Recent payments
+      const container = document.getElementById('paymentsListContainer');
+      if (payments.length === 0) {
+        container.innerHTML = '<div style="color:var(--text-muted); padding:10px;">अद्याप पेमेंट नोंद नाही.</div>';
+        return;
+      }
+      container.innerHTML = payments.slice(-20).reverse().map(p => `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border);">
+          <div>
+            <strong>${p.name || 'ग्राहक'}</strong> <span style="font-size:0.75rem; color:var(--text-muted);">(${p.mode || 'UPI'})</span>
+            <div style="font-size:0.75rem; color:var(--text-muted);">${p.date || '-'} ${p.ref ? '| Ref: ' + p.ref : ''}</div>
+          </div>
+          <div style="font-weight:800; color:var(--success); font-size:1rem;">+₹${p.amount}</div>
+        </div>
+      `).join('');
+    }
+
+    function populateCustomerDropdowns() {
+      const active = customers.filter(c => !c.inactive);
+      const options = active.map(c => `<option value="${c.id}">#${c.serial} ${c.name} (${c.area})</option>`).join('');
+      document.getElementById('payCustomerSelect').innerHTML = options;
+      document.getElementById('chuttiCustSelect').innerHTML = options;
+      document.getElementById('extraCustSelect').innerHTML = options;
+      document.getElementById('billCustSelect').innerHTML = '<option value="">-- निवडा --</option>' + options;
+    }
+
+    function openAddPaymentModal() {
+      populateCustomerDropdowns();
+      document.getElementById('payDate').value = TODAY_KEY;
+      openModal('paymentModal');
+    }
+
+    function savePayment(e) {
+      e.preventDefault();
+      const custId = document.getElementById('payCustomerSelect').value;
+      const amount = Number(document.getElementById('payAmount').value) || 0;
+      const mode = document.getElementById('payMode').value;
+      const ref = document.getElementById('payRef').value.trim();
+      const date = document.getElementById('payDate').value;
+      const cust = customers.find(c => c.id == custId);
+
+      const payData = {
+        custId: custId,
+        name: cust ? cust.name : 'Unknown',
+        amount: amount,
+        mode: mode,
+        ref: ref,
+        date: date
+      };
+
+      // Add to payments and adjust customer balance
+      db.ref('PAYMENTS').push(payData).then(() => {
+        if (cust) {
+          const newBal = (Number(cust.balance) || 0) + amount;
+          db.ref('CUSTOMERS/' + cust.id + '/balance').set(newBal);
+        }
+        closeModal('paymentModal');
+      });
+    }
+
+    function sharePLWhatsApp() {
+      const exp = document.getElementById('plExpected').textContent;
+      const rec = document.getElementById('plReceived').textContent;
+      const kit = document.getElementById('plKitchenExp').textContent;
+      const del = document.getElementById('plDeliveryExp').textContent;
+      const net = document.getElementById('plNetProfit').textContent;
+      const msg = `📊 *आसन टिफिन, पंढरपूर - मासिक गोषवारा*\n\nअपेक्षित उत्पन्न: ${exp}\nजमा रक्कम: ${rec}\nकिचन खर्च: ${kit}\nडिलिव्हरी खर्च: ${del}\n------------------\n*निव्वळ नफा (Net Profit): ${net}*\n\nतारीख: ${new Date().toLocaleDateString('mr-IN')}`;
+      window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+    }
+
+    function sendAllDueWA() {
+      const dueCusts = customers.filter(c => !c.inactive && (Number(c.balance) || 0) < 0);
+      if (!dueCusts.length) return alert('कोणाचीही बाकी नाही!');
+      const first = dueCusts[0];
+      sendCustomerWA(first.phone, first.name, first.balance);
+    }
+
+    // EXPENSES
+    function renderExpenses() {
+      const container = document.getElementById('expenseListContainer');
+      let totalMonth = 0;
+      let totalToday = 0;
+
+      expenses.forEach(e => {
+        const amt = Number(e.amount) || 0;
+        totalMonth += amt;
+        if (e.date === TODAY_KEY) totalToday += amt;
+      });
+
+      document.getElementById('expTotalMonth').textContent = '₹' + totalMonth;
+      document.getElementById('expTotalToday').textContent = '₹' + totalToday;
+
+      if (!expenses.length) {
+        container.innerHTML = '<div style="color:var(--text-muted); padding:10px;">कोणताही खर्च नोंदवलेला नाही.</div>';
+        return;
+      }
+      container.innerHTML = expenses.slice(-20).reverse().map(e => `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border);">
+          <div>
+            <strong>${e.item}</strong> <span class="chip" style="font-size:0.7rem;">${e.category}</span>
+            <div style="font-size:0.75rem; color:var(--text-muted);">${e.date}</div>
+          </div>
+          <div style="font-weight:800; color:var(--danger);">₹${e.amount}</div>
+        </div>
+      `).join('');
+    }
+
+    function openAddExpenseModal() {
+      document.getElementById('expDate').value = TODAY_KEY;
+      openModal('expenseModal');
+    }
+
+    function saveExpense(e) {
+      e.preventDefault();
+      const expData = {
+        category: document.getElementById('expCategory').value,
+        item: document.getElementById('expItem').value.trim(),
+        amount: Number(document.getElementById('expAmount').value) || 0,
+        date: document.getElementById('expDate').value
+      };
+      db.ref('EXPENSES').push(expData).then(() => closeModal('expenseModal'));
+    }
+
+    function openDeliveryExpenseModal() {
+      document.getElementById('delivExpDate').value = TODAY_KEY;
+      openModal('deliveryExpenseModal');
+    }
+
+    function saveDeliveryExpense(e) {
+      e.preventDefault();
+      const delData = {
+        desc: document.getElementById('delivExpDesc').value,
+        amount: Number(document.getElementById('delivExpAmount').value) || 0,
+        rider: document.getElementById('delivExpRider').value.trim(),
+        date: document.getElementById('delivExpDate').value
+      };
+      db.ref('DELIVERY_EXPENSES').push(delData).then(() => closeModal('deliveryExpenseModal'));
+    }
+
+    // CHUTTI & EXTRAS
+    function openChuttiModal() {
+      populateCustomerDropdowns();
+      document.getElementById('chuttiDate').value = TODAY_KEY;
+      openModal('chuttiModal');
+    }
+
+    function saveChutti(e) {
+      e.preventDefault();
+      const custId = document.getElementById('chuttiCustSelect').value;
+      const date = document.getElementById('chuttiDate').value;
+      const meal = document.getElementById('chuttiMealType').value;
+      db.ref(`CHUTTIS/${date}/${custId}`).set({ meal: meal, recordedAt: new Date().toISOString() }).then(() => {
+        closeModal('chuttiModal');
+        alert('सुट्टी नोंदवली गेली!');
+      });
+    }
+
+    function openExtraTiffinModal() {
+      populateCustomerDropdowns();
+      openModal('extraTiffinModal');
+    }
+
+    function saveExtraTiffin(e) {
+      e.preventDefault();
+      const custId = document.getElementById('extraCustSelect').value;
+      const cust = customers.find(c => c.id == custId);
+      const extraData = {
+        custId: custId,
+        name: cust ? cust.name : 'Unknown',
+        qty: Number(document.getElementById('extraQty').value) || 1,
+        rate: Number(document.getElementById('extraRate').value) || 70,
+        meal: document.getElementById('extraMeal').value,
+        date: TODAY_KEY
+      };
+      db.ref('EXTRAS').push(extraData).then(() => closeModal('extraTiffinModal'));
+    }
+
+    // SABJI MENU EDIT
+    function openSabjiModal() {
+      loadDaySabjiForm();
+      openModal('sabjiModal');
+    }
+
+    function loadDaySabjiForm() {
+      const dayIdx = Number(document.getElementById('sabjiDaySelect').value) || 0;
+      const d = weeklySabji[dayIdx] || {};
+      document.getElementById('sabjiVegGravy').value = d.gravy || '';
+      document.getElementById('sabjiVegDry').value = d.dry || '';
+      document.getElementById('sabjiDinnerVegGravy').value = d.dinner_gravy || '';
+      document.getElementById('sabjiDinnerVegDry').value = d.dinner_dry || '';
+      document.getElementById('sabjiNvGravy').value = d.nv_gravy || '';
+      document.getElementById('sabjiNvDry').value = d.nv_dry || '';
+      document.getElementById('sabjiDinnerNvGravy').value = d.nv_dinner_gravy || '';
+      document.getElementById('sabjiDinnerNvDry').value = d.nv_dinner_dry || '';
+    }
+
+    function saveSabjiDay() {
+      const dayIdx = Number(document.getElementById('sabjiDaySelect').value) || 0;
+      if (!weeklySabji[dayIdx]) weeklySabji[dayIdx] = {};
+      weeklySabji[dayIdx].gravy = document.getElementById('sabjiVegGravy').value.trim();
+      weeklySabji[dayIdx].dry = document.getElementById('sabjiVegDry').value.trim();
+      weeklySabji[dayIdx].dinner_gravy = document.getElementById('sabjiDinnerVegGravy').value.trim();
+      weeklySabji[dayIdx].dinner_dry = document.getElementById('sabjiDinnerVegDry').value.trim();
+      weeklySabji[dayIdx].nv_gravy = document.getElementById('sabjiNvGravy').value.trim();
+      weeklySabji[dayIdx].nv_dry = document.getElementById('sabjiNvDry').value.trim();
+      weeklySabji[dayIdx].nv_dinner_gravy = document.getElementById('sabjiDinnerNvGravy').value.trim();
+      weeklySabji[dayIdx].nv_dinner_dry = document.getElementById('sabjiDinnerNvDry').value.trim();
+
+      db.ref('WEEKLY_SABJI/' + dayIdx).set(weeklySabji[dayIdx]).then(() => {
+        closeModal('sabjiModal');
+        renderTodaySabji();
+        alert('मेनू अपडेट झाला!');
+      });
+    }
+
+    // BILL GENERATION
+    let currentBillData = {};
+
+    function loadCustomerBill() {
+      const custId = document.getElementById('billCustSelect').value;
+      const box = document.getElementById('billDetailsBox');
+      if (!custId) { box.style.display = 'none'; return; }
+
+      const cust = customers.find(c => c.id == custId);
+      if (!cust) return;
+
+      box.style.display = 'block';
+      const plan = plans.find(p => p.name === cust.plan) || plans[0];
+      let baseAmount = cust.plan === 'Custom' ? (cust.customPrice || 2000) : (cust.meal === 'Lunch' ? plan.priceLunch : (cust.meal === 'Dinner' ? plan.priceDinner : plan.price));
+
+      // Calculate Chutti cut
+      let custChuttiDays = 0;
+      Object.keys(chuttis).forEach(date => {
+        if (chuttis[date][cust.id]) custChuttiDays++;
+      });
+      const freeAllowance = plan.freeChutti || 0;
+      const chargedChutti = Math.max(0, custChuttiDays - freeAllowance);
+      const perDayRate = Math.round(baseAmount / 30);
+      const chuttiCut = chargedChutti * perDayRate;
+
+      // Extras
+      const custExtras = extras.filter(e => e.custId == cust.id);
+      const extraAmount = custExtras.reduce((acc, e) => acc + ((Number(e.qty)||0) * (Number(e.rate)||70)), 0);
+
+      const prevDue = (Number(cust.balance) || 0) < 0 ? Math.abs(cust.balance) : 0;
+
+      currentBillData = {
+        cust: cust,
+        plan: plan,
+        baseAmount: baseAmount,
+        presentDays: 30 - custChuttiDays,
+        totalChutti: custChuttiDays,
+        freeAllowance: freeAllowance,
+        chargedChutti: chargedChutti,
+        chuttiCut: chuttiCut,
+        extraAmount: extraAmount,
+        prevDue: prevDue
+      };
+
+      document.getElementById('billPlanName').textContent = cust.plan;
+      document.getElementById('billPlanAmount').textContent = '₹' + baseAmount;
+      document.getElementById('billPresentDays').textContent = currentBillData.presentDays;
+      document.getElementById('billTotalChutti').textContent = custChuttiDays;
+      document.getElementById('billFreeChutti').textContent = freeAllowance;
+      document.getElementById('billChargedChutti').textContent = chargedChutti;
+      document.getElementById('billChuttiCut').textContent = chuttiCut;
+      document.getElementById('billExtraAmount').textContent = extraAmount;
+      document.getElementById('billPrevDueVal').textContent = '₹' + prevDue;
+
+      calculateFinalBill();
+    }
+
+    function calculateFinalBill() {
+      const includePrev = document.getElementById('billIncludePrevDue').checked;
+      let finalAmt = currentBillData.baseAmount - currentBillData.chuttiCut + currentBillData.extraAmount;
+      if (includePrev) finalAmt += currentBillData.prevDue;
+      finalAmt = Math.max(0, finalAmt);
+      currentBillData.finalAmount = finalAmt;
+      document.getElementById('billFinalAmount').textContent = '₹' + finalAmt;
+
+      // Generate UPI QR
+      const upiUrl = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(upiName)}&am=${finalAmt}&cu=INR`;
+      const qrApi = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiUrl)}`;
+      document.getElementById('billQrContainer').innerHTML = `<img src="${qrApi}" alt="UPI QR" style="width:130px; height:130px; display:block;">`;
+    }
+
+    function sendMarathiBillWA() {
+      const d = currentBillData;
+      const c = d.cust;
+      const msg = `🍱 *आसन टिफिन, पंढरपूर*\n` +
+        `--------------------------------\n` +
+        `ग्राहकाचे नाव: ${c.name} (#${c.serial})\n` +
+        `प्लॅन: ${c.plan} (${c.meal})\n` +
+        `प्लॅन रक्कम: ₹${d.baseAmount}\n` +
+        `हजर दिवस: ${d.presentDays} दिवस\n` +
+        `सुट्टी दिवस: ${d.totalChutti} (मोफत: ${d.freeAllowance}, वजा: ${d.chargedChutti})\n` +
+        `सुट्टी वजा रक्कम: -₹${d.chuttiCut}\n` +
+        (d.extraAmount > 0 ? `जादा टिफिन: +₹${d.extraAmount}\n` : '') +
+        (document.getElementById('billIncludePrevDue').checked && d.prevDue > 0 ? `मागील बाकी: +₹${d.prevDue}\n` : '') +
+        `--------------------------------\n` +
+        `*एकूण देय रक्कम: ₹${d.finalAmount}*\n` +
+        `--------------------------------\n` +
+        `UPI आयडी: ${upiId} (${upiName})\n` +
+        `कृपया पेमेंट करून स्क्रीनशॉट पाठवावा. धन्यवाद!`;
+
+      const cleanPhone = c.phone.replace(/\D/g, '');
+      const waNum = cleanPhone.length === 10 ? '91' + cleanPhone : cleanPhone;
+      window.open(`https://wa.me/${waNum}?text=${encodeURIComponent(msg)}`, '_blank');
+    }
+
+    function openDirectUPIPay() {
+      const upiUrl = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(upiName)}&am=${currentBillData.finalAmount}&cu=INR`;
+      window.location.href = upiUrl;
+    }
+
+    // DELIVERY BOY VIEW (PIN 1234)
+    function openDeliveryView() {
+      const pin = prompt('डिलिव्हरी मोडसाठी पिन टाका (Default: 1234):');
+      if (pin !== '1234') { alert('चुकीचा पिन!'); return; }
+      document.getElementById('deliveryOverlay').style.display = 'block';
+      renderDeliveryRoute();
+    }
+
+    function closeDeliveryView() {
+      document.getElementById('deliveryOverlay').style.display = 'none';
+    }
+
+    function switchDeliveryTab(tab, el) {
+      el.parentElement.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+      document.getElementById('delivRouteSection').style.display = tab === 'route' ? 'block' : 'none';
+      document.getElementById('delivTiffinSection').style.display = tab === 'tiffin' ? 'block' : 'none';
+      if (tab === 'tiffin') renderTiffinReturn();
+    }
+
+    function renderDeliveryRoute() {
+      const container = document.getElementById('delivRouteCards');
+      const activeCusts = customers.filter(c => !c.inactive);
+      let orderMap = {};
+      orders.forEach(o => { orderMap[o.custId] = o; });
+
+      container.innerHTML = activeCusts.map(c => {
+        const ord = orderMap[c.id] || { stage: 'cooking', status: 'pending' };
+        const isDelivered = ord.status === 'delivered';
+        const isSkipped = ord.status === 'skipped';
+        const isTiffinReturned = returnedTiffins[c.id];
+
+        return `
+          <div class="cust-card" style="border-left: 4px solid ${isDelivered ? 'var(--success)' : 'var(--primary)'};">
+            <div class="cust-header">
+              <span class="cust-id">#${c.serial}</span>
+              <span class="cust-name">${c.name}</span>
+              <span style="font-weight:700;">${isDelivered ? '✅ Delivered' : (isSkipped ? '🚫 Skipped' : '⏳ On Way')}</span>
+            </div>
+            <div class="cust-meta">
+              <span>📍 ${c.area}</span>
+              <span>⏰ ${c.meal}</span>
+              <span>${c.foodType === 'Veg' ? '🥦 व्हेज' : '🍗 नॉन-व्हेज'}</span>
+            </div>
+            <div style="display:flex; gap:8px; margin-top:6px; flex-wrap:wrap;">
+              <a href="https://maps.google.com/?q=${encodeURIComponent(c.area + ', Pandharpur')}" target="_blank" class="btn btn-secondary btn-sm">📍 Location</a>
+              <a href="tel:${c.phone}" class="btn btn-secondary btn-sm">📞 Call</a>
+              <button class="btn btn-success btn-sm" onclick="deliveryMarkDelivered('${c.id}')">✅ Done</button>
+              <button class="btn btn-danger btn-sm" onclick="deliveryMarkSkip('${c.id}')">🚫 Skip</button>
+              <button class="btn btn-secondary btn-sm" onclick="deliveryUndo('${c.id}')">↩ Undo</button>
+              <button class="btn btn-primary btn-sm" onclick="deliveryCollectCash('${c.id}')">💰 Cash</button>
+            </div>
+            <div style="margin-top:6px;">
+              <label style="font-size:0.82rem; cursor:pointer;">
+                <input type="checkbox" ${isTiffinReturned ? 'checked' : ''} onchange="toggleTiffinReturn('${c.id}', this.checked)"> 🥡 कालचा रिकामा डबा परत मिळाला
+              </label>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function deliveryMarkDelivered(custId) {
+      db.ref('ORDERS/' + custId).update({ status: 'delivered', stage: 'delivered' });
+    }
+    function deliveryMarkSkip(custId) {
+      db.ref('ORDERS/' + custId).update({ status: 'skipped', stage: 'skipped' });
+    }
+    function deliveryUndo(custId) {
+      db.ref('ORDERS/' + custId).update({ status: 'pending', stage: 'cooking' });
+    }
+    function toggleTiffinReturn(custId, val) {
+      db.ref('RETURNED_TIFFINS/' + custId).set(val);
+    }
+    function deliveryCollectCash(custId) {
+      const cust = customers.find(c => c.id == custId);
+      const amt = prompt(`${cust ? cust.name : 'ग्राहक'} कडून किती कॅश मिळाली (₹)?`);
+      if (!amt || isNaN(amt) || Number(amt) <= 0) return;
+      const numAmt = Number(amt);
+      db.ref('PAYMENTS').push({
+        custId: custId,
+        name: cust ? cust.name : 'ग्राहक',
+        amount: numAmt,
+        mode: 'Cash',
+        ref: 'डिलिव्हरी बॉयने गोळा केली',
+        date: TODAY_KEY
+      });
+      if (cust) {
+        db.ref('CUSTOMERS/' + custId + '/balance').set((Number(cust.balance) || 0) + numAmt);
+      }
+      alert('कॅश पेमेंट नोंदवले गेले!');
+    }
+
+    function renderTiffinReturn() {
+      const container = document.getElementById('tiffinReturnList');
+      const activeCusts = customers.filter(c => !c.inactive);
+      container.innerHTML = activeCusts.map(c => `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border);">
+          <span>#${c.serial} ${c.name} (${c.area})</span>
+          <label>
+            <input type="checkbox" ${returnedTiffins[c.id] ? 'checked' : ''} onchange="toggleTiffinReturn('${c.id}', this.checked)"> परत आला
+          </label>
+        </div>
+      `).join('');
+    }
+
+    // REPORTS & KITCHEN CALC
+    function renderReport() {
+      const areaMap = {};
+      const planMap = {};
+      customers.filter(c => !c.inactive).forEach(c => {
+        areaMap[c.area] = (areaMap[c.area] || 0) + 1;
+        planMap[c.plan] = (planMap[c.plan] || 0) + 1;
+      });
+
+      document.getElementById('areaBreakdownList').innerHTML = Object.keys(areaMap).map(a => `
+        <div style="display:flex; justify-content:space-between; padding:4px 0;">
+          <span>📍 ${a || 'इतर'}:</span> <strong>${areaMap[a]} ग्राहक</strong>
+        </div>
+      `).join('');
+
+      document.getElementById('planBreakdownList').innerHTML = Object.keys(planMap).map(p => `
+        <div style="display:flex; justify-content:space-between; padding:4px 0;">
+          <span>🏷️ ${p}:</span> <strong>${planMap[p]} ग्राहक</strong>
+        </div>
+      `).join('');
+
+      const topCusts = [...customers].filter(c => (Number(c.balance)||0) >= 0).slice(0, 5);
+      document.getElementById('topCustomersList').innerHTML = topCusts.map(c => `
+        <div style="padding:4px 0;">⭐ #${c.serial} ${c.name} - वेळेवर देयके भरतात</div>
+      `).join('');
+    }
+
+    function calculateKitchenRoti() {
+      const custs = Number(document.getElementById('calcCustCount').value) || 0;
+      const rotis = Number(document.getElementById('calcRotiPerCust').value) || 3;
+      document.getElementById('calcTotalRotiVal').textContent = custs * rotis;
+    }
+
+    // PLANS MODAL
+    function openPlansModal() {
+      const container = document.getElementById('plansEditContainer');
+      container.innerHTML = plans.filter(p => p.id !== 'Custom').map((p, idx) => `
+        <div class="card" style="margin-bottom:8px;">
+          <strong>${p.name} प्लॅन</strong>
+          <div class="form-group" style="margin-top:6px;">
+            <label>दोन्ही वेळ दर (₹):</label>
+            <input type="number" id="planBoth_${idx}" class="form-control" value="${p.price}">
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+            <div class="form-group">
+              <label>दुपार दर (₹):</label>
+              <input type="number" id="planLunch_${idx}" class="form-control" value="${p.priceLunch}">
+            </div>
+            <div class="form-group">
+              <label>रात्र दर (₹):</label>
+              <input type="number" id="planDinner_${idx}" class="form-control" value="${p.priceDinner}">
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+            <div class="form-group">
+              <label>दर टिफिन पोळ्या:</label>
+              <input type="number" id="planRoti_${idx}" class="form-control" value="${p.roti}">
+            </div>
+            <div class="form-group">
+              <label>मोफत सुट्टी दिवस:</label>
+              <input type="number" id="planChutti_${idx}" class="form-control" value="${p.freeChutti}">
+            </div>
+          </div>
+        </div>
+      `).join('');
+      openModal('plansModal');
+    }
+
+    function savePlansSettings() {
+      plans.filter(p => p.id !== 'Custom').forEach((p, idx) => {
+        p.price = Number(document.getElementById(`planBoth_${idx}`).value) || p.price;
+        p.priceLunch = Number(document.getElementById(`planLunch_${idx}`).value) || p.priceLunch;
+        p.priceDinner = Number(document.getElementById(`planDinner_${idx}`).value) || p.priceDinner;
+        p.roti = Number(document.getElementById(`planRoti_${idx}`).value) || p.roti;
+        p.freeChutti = Number(document.getElementById(`planChutti_${idx}`).value) || p.freeChutti;
+      });
+      db.ref('PLANS').set(plans).then(() => {
+        closeModal('plansModal');
+        alert('प्लॅन सेव्ह झाले!');
+      });
+    }
+
+    // BACKUP & RESTORE
+    function openBackupModal() { openModal('backupModal'); }
+
+    function exportDataJSON() {
+      const data = {
+        customers: customers,
+        payments: payments,
+        expenses: expenses,
+        plans: plans,
+        weeklySabji: weeklySabji,
+        exportDate: new Date().toISOString()
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `asan_tiffin_backup_${TODAY_KEY}.json`;
+      a.click();
+    }
+
+    function importDataJSON() {
+      const file = document.getElementById('importJsonFile').files[0];
+      if (!file) return alert('कृपया फाईल निवडा!');
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (imported.customers && confirm('हा बॅकअप रिस्टोर करायचा का? चालू डेटा रिप्लेस होईल.')) {
+            if (imported.customers) db.ref('CUSTOMERS').set(imported.customers);
+            if (imported.payments) db.ref('PAYMENTS').set(imported.payments);
+            if (imported.expenses) db.ref('EXPENSES').set(imported.expenses);
+            alert('डेटा यशस्वीरीत्या रिस्टोर झाला!');
+            closeModal('backupModal');
+          }
+        } catch(err) {
+          alert('फाईल वाचण्यात चूक झाली: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function promptNewMonthReset() {
+      if (confirm('नवीन महिना सुरू करताना मागील महिना पूर्ण हिशोब स्थिर करायचा का?')) {
+        alert('नवीन महिना सुरू झाला!');
+      }
+    }
+
+    function sendDueRemindersWA() {
+      sendAllDueWA();
+    }
+
+    function openMonthlySummary() {
+      switchTab('payments');
+    }
+
+    function openReminderModal() {
+      const time = prompt('दररोज रिमाइंड करण्यासाठी वेळ टाका (उदा. 10:00 AM / 06:00 PM):', localStorage.getItem('asan_reminder_time') || '10:00 AM');
+      if (time) {
+        localStorage.setItem('asan_reminder_time', time);
+        alert(`रिमाइंडर वेळ ${time} सेव्ह झाली!`);
+      }
+    }
+
+    // START
+    window.addEventListener('DOMContentLoaded', () => {
+      initFirebaseListeners();
+
+      // PWA Service Worker Registration
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').then((reg) => {
+          console.log('Asan Tiffin Service Worker registered:', reg.scope);
+        }).catch((err) => {
+          console.log('Service Worker registration non-fatal notice:', err);
+        });
+      }
+
+      // Handle beforeinstallprompt for PWA install button
+      let deferredInstallPrompt = null;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredInstallPrompt = e;
+        const installBanner = document.getElementById('pwa-install-banner');
+        if (installBanner) installBanner.style.display = 'flex';
+      });
+
+      window.triggerPwaInstall = function() {
+        if (deferredInstallPrompt) {
+          deferredInstallPrompt.prompt();
+          deferredInstallPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'accepted') {
+              console.log('User accepted the PWA install prompt');
+            }
+            deferredInstallPrompt = null;
+            const installBanner = document.getElementById('pwa-install-banner');
+            if (installBanner) installBanner.style.display = 'none';
+          });
+        } else {
+          alert('तुमच्या मोबाईल ब्राऊझर मेन्यूमधून (⋮) "Add to Home screen" किंवा "Install App" निवडून ॲप इन्स्टॉल करा!');
+        }
+      };
+    });
+  </script>
+
+  <!-- PWA Install Banner -->
+  <div id="pwa-install-banner" style="display:none; position:fixed; bottom:74px; left:12px; right:12px; background:#FFFFFF; border:2px solid #E65100; border-radius:14px; padding:12px 14px; box-shadow:0 8px 24px rgba(0,0,0,0.15); z-index:999; align-items:center; justify-content:space-between; gap:10px;">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <img src="icon-192.png" width="40" height="40" style="border-radius:10px;" alt="Asan Tiffin">
+      <div>
+        <div style="font-weight:800; font-size:0.9rem; color:#E65100;">Asan Tiffin ॲप इन्स्टॉल करा</div>
+        <div style="font-size:0.75rem; color:#6C757D;">फोनच्या होम स्क्रीनवर थेट वापरा (PWA)</div>
+      </div>
+    </div>
+    <div style="display:flex; gap:6px;">
+      <button onclick="triggerPwaInstall()" style="background:#E65100; color:#FFFFFF; border:none; padding:8px 14px; border-radius:8px; font-weight:700; font-size:0.85rem; cursor:pointer;">इन्स्टॉल</button>
+      <button onclick="document.getElementById('pwa-install-banner').style.display='none'" style="background:#F1F3F5; color:#6C757D; border:none; padding:8px 10px; border-radius:8px; font-weight:600; font-size:0.8rem; cursor:pointer;">✕</button>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Asan Tiffin</string>
+    <string name="add_order">ऑर्डर जोडा (Add Order)</string>
+    <string name="pending_deliveries">आजच्या प्रलंबित डिलिव्हरी</string>
+    <string name="home_title">डिलिव्हरी होम</string>
+    <string name="filter_all">सर्व</string>
+    <string name="filter_lunch">दुपार (Lunch)</string>
+    <string name="filter_dinner">रात्र (Dinner)</string>
+</resources>

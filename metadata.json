@@ -1,0 +1,6 @@
+{
+  "name": "Asan Tiffin",
+  "description": "Asan Tiffin delivery business management for Pandharpur, Maharashtra",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

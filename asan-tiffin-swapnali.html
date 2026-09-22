@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="mr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Asan Tiffin - स्वप्नाली व्ह्यू (Kitchen & Packing)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Firebase Compat Libraries -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <style>
+    :root {
+      --bg: #F9FAF5;
+      --surface: #FFFFFF;
+      --surface-2: #F1F4EB;
+      --text: #1E2319;
+      --text-muted: #65705C;
+      --border: #E0E7D6;
+      --primary: #2E7D32;
+      --primary-light: #E8F5E9;
+      --primary-hover: #1B5E20;
+      --accent: #E65100;
+      --accent-light: #FFF3E0;
+      --danger: #D32F2F;
+      --danger-light: #FFEBEE;
+      --success: #2E7D32;
+      --shadow: 0 4px 12px rgba(0,0,0,0.05);
+      --radius: 12px;
+      --header-h: 60px;
+      --bottom-h: 64px;
+    }
+    [data-theme="dark"] {
+      --bg: #11140E;
+      --surface: #1B2117;
+      --surface-2: #242D20;
+      --text: #F3F6F0;
+      --text-muted: #95A38C;
+      --border: #2E3A29;
+      --primary: #66BB6A;
+      --primary-light: #1E331B;
+      --shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Baloo 2', sans-serif; -webkit-tap-highlight-color: transparent; }
+    body { background: var(--bg); color: var(--text); min-height: 100vh; padding-top: var(--header-h); padding-bottom: calc(var(--bottom-h) + 16px); }
+
+    /* TOPBAR */
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0; height: var(--header-h);
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 14px; z-index: 100; box-shadow: var(--shadow);
+    }
+    .topbar-brand { display: flex; align-items: center; gap: 8px; font-size: 1.15rem; font-weight: 800; color: var(--primary); }
+    .badge-readonly { background: var(--accent-light); color: var(--accent); font-size: 0.72rem; padding: 2px 8px; border-radius: 20px; font-weight: 700; border: 1px solid #FFE0B2; }
+    .sync-status { display: flex; align-items: center; gap: 4px; font-size: 0.75rem; color: var(--success); font-weight: 700; }
+    .sync-dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; display: inline-block; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    .topbar-actions { display: flex; align-items: center; gap: 8px; }
+    .icon-btn {
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: 8px; width: 36px; height: 36px; display: flex;
+      align-items: center; justify-content: center; cursor: pointer; font-size: 1rem; color: var(--text);
+    }
+
+    /* BOTTOM NAV */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0; height: var(--bottom-h);
+      background: var(--surface); border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-around;
+      z-index: 100; box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+    }
+    .nav-tab {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      flex: 1; height: 100%; border: none; background: transparent;
+      color: var(--text-muted); cursor: pointer; font-size: 0.75rem; font-weight: 600;
+    }
+    .nav-tab .tab-icon { font-size: 1.25rem; }
+    .nav-tab.active { color: var(--primary); font-weight: 800; }
+
+    /* CONTENT CONTAINERS */
+    .tab-content { display: none; padding: 14px; max-width: 720px; margin: 0 auto; }
+    .tab-content.active { display: block; animation: fadeIn 0.15s ease-in; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* CARDS */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px; margin-bottom: 12px; box-shadow: var(--shadow);
+    }
+    .card-title { font-size: 1.05rem; font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+
+    /* PROGRESS BAR */
+    .prog-bar-wrap { width: 100%; background: var(--surface-2); border-radius: 8px; height: 10px; overflow: hidden; margin: 6px 0; }
+    .prog-bar-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s ease; }
+
+    /* BADGES & CHIPS */
+    .chip { display: inline-flex; align-items: center; gap: 4px; font-size: 0.78rem; padding: 4px 12px; border-radius: 16px; font-weight: 600; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); }
+    .chip.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .chip-group { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 10px; }
+    .tag-veg { background: #E8F5E9; color: #2E7D32; border: 1px solid #A5D6A7; font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; font-weight: 700; }
+    .tag-nv { background: #FFEBEE; color: #C62828; border: 1px solid #EF9A9A; font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; font-weight: 700; }
+
+    /* BUTTONS */
+    .btn {
+      padding: 8px 14px; border-radius: 8px; font-size: 0.88rem; font-weight: 700;
+      cursor: pointer; border: 1px solid transparent; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-secondary { background: var(--surface-2); color: var(--text); border-color: var(--border); }
+    .btn-block { width: 100%; }
+    .btn-sm { padding: 4px 8px; font-size: 0.78rem; border-radius: 6px; }
+
+    /* INPUTS */
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 0.82rem; font-weight: 700; margin-bottom: 4px; color: var(--text-muted); }
+    .form-control {
+      width: 100%; padding: 9px 12px; border: 1px solid var(--border);
+      border-radius: 8px; font-size: 0.92rem; background: var(--surface); color: var(--text);
+    }
+
+    /* STATS GRID */
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+    .stat-box { background: var(--surface-2); padding: 10px 8px; border-radius: 8px; text-align: center; border: 1px solid var(--border); }
+    .stat-label { font-size: 0.72rem; color: var(--text-muted); font-weight: 600; }
+    .stat-val { font-size: 1.25rem; font-weight: 800; color: var(--text); }
+
+    /* PACKING ITEM (TOUCH FRIENDLY) */
+    .pack-item {
+      background: var(--surface); border: 2px solid var(--border);
+      border-radius: 10px; padding: 12px; margin-bottom: 8px;
+      display: flex; align-items: center; justify-content: space-between; cursor: pointer;
+      user-select: none; transition: all 0.15s ease;
+    }
+    .pack-item.packed {
+      border-color: var(--primary); background: var(--primary-light);
+    }
+    .pack-item.packed .pack-name {
+      text-decoration: line-through; opacity: 0.75;
+    }
+
+    /* MODAL */
+    .modal {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; padding: 14px;
+    }
+    .modal.show { display: flex; }
+    .modal-box {
+      background: var(--surface); border-radius: var(--radius);
+      width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto;
+      padding: 18px; border: 1px solid var(--border); box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+    .modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .modal-title { font-size: 1.15rem; font-weight: 800; }
+    .close-btn { background: none; border: none; font-size: 1.4rem; cursor: pointer; color: var(--text-muted); }
+  </style>
+</head>
+<body>
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="topbar-brand">
+      <span>👩‍🍳 आसन टिफिन</span>
+      <span class="badge-readonly">स्वप्नाली व्ह्यू</span>
+    </div>
+    <div class="topbar-actions">
+      <div class="sync-status"><span class="sync-dot"></span> लाईव्ह</div>
+      <button class="icon-btn" onclick="toggleTheme()" title="थीम बदला" id="themeBtn">🌙</button>
+    </div>
+  </header>
+
+  <!-- TAB 1: DASHBOARD -->
+  <main id="tab-dashboard" class="tab-content active">
+    <!-- Today Stats -->
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-label">एकूण टिफिन</div>
+        <div class="stat-val" id="statTotalTiffins">0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">पॅक झाले</div>
+        <div class="stat-val" style="color:var(--primary);" id="statPackedTiffins">0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">डिलिव्हर्ड</div>
+        <div class="stat-val" style="color:var(--accent);" id="statDeliveredTiffins">0</div>
+      </div>
+    </div>
+
+    <!-- Live Packing Progress Card -->
+    <div class="card">
+      <div class="card-title">
+        <span>📦 आजचे पॅकिंग सारांश</span>
+        <span id="packPercentText" style="font-size:0.85rem; font-weight:800; color:var(--primary);">0%</span>
+      </div>
+      <div class="prog-bar-wrap">
+        <div class="prog-bar-fill" id="packProgressFill"></div>
+      </div>
+      <div id="planWiseProgressList" style="margin-top:10px; font-size:0.85rem;"></div>
+    </div>
+
+    <!-- Time-Aware Today's Sabji Card -->
+    <div class="card">
+      <div class="card-title">
+        <span id="todaySabjiHeading">🍲 आजची भाजी</span>
+        <button class="btn btn-secondary btn-sm" onclick="openSabjiModal()">✏️ भाजी बदला</button>
+      </div>
+      <div style="background: var(--surface-2); padding: 10px; border-radius: 8px; margin-bottom: 6px;">
+        <div style="color:var(--primary); font-weight:700; font-size:0.9rem; margin-bottom:2px;">🥦 व्हेज:</div>
+        <div>रस्सा भाजी: <strong id="swapVegGravy">-</strong></div>
+        <div>सुकी भाजी: <strong id="swapVegDry">-</strong></div>
+      </div>
+      <div style="background: var(--surface-2); padding: 10px; border-radius: 8px;">
+        <div style="color:var(--danger); font-weight:700; font-size:0.9rem; margin-bottom:2px;">🍗 नॉन-व्हेज:</div>
+        <div>नॉन-व्हेज रस्सा: <strong id="swapNvGravy">-</strong></div>
+        <div>नॉन-व्हेज सुका: <strong id="swapNvDry">-</strong></div>
+      </div>
+    </div>
+
+    <!-- Roti Counter Card -->
+    <div class="card" id="swapRotiCard" style="border-left: 4px solid var(--primary);">
+      <div class="card-title" style="margin-bottom: 8px;">
+        <span>🫓 पोळी मोजणी (Roti Counter)</span>
+        <span class="tag-veg" id="swapTotalRotis" style="font-size: 1rem; padding: 4px 10px; font-weight:800;">0 पोळ्या</span>
+      </div>
+
+      <!-- Meal Filter Chips -->
+      <div style="display:flex; gap:6px; margin-bottom:12px; overflow-x:auto; padding-bottom:4px;">
+        <button class="chip active" id="swapRotiAll" onclick="setSwapRotiFilter('All', this)">☀️ सर्व दिवस (Full Day)</button>
+        <button class="chip" id="swapRotiLunch" onclick="setSwapRotiFilter('Lunch', this)">🍛 दुपार (Lunch)</button>
+        <button class="chip" id="swapRotiDinner" onclick="setSwapRotiFilter('Dinner', this)">🌙 रात्र (Dinner)</button>
+      </div>
+
+      <!-- Quick Metrics -->
+      <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 10px;">
+        <div class="stat-box">
+          <div class="stat-label">🍛 दुपार (Lunch)</div>
+          <div class="stat-val" id="swapRotiLunchVal" style="color:var(--primary); font-size:1.1rem;">0</div>
+          <div style="font-size:0.7rem; color:var(--text-muted);" id="swapRotiLunchCusts">0 ग्राहक</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">🌙 रात्र (Dinner)</div>
+          <div class="stat-val" id="swapRotiDinnerVal" style="color:var(--accent); font-size:1.1rem;">0</div>
+          <div style="font-size:0.7rem; color:var(--text-muted);" id="swapRotiDinnerCusts">0 ग्राहक</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">🚫 वगळलेले</div>
+          <div class="stat-val" id="swapRotiExcludedVal" style="color:var(--danger); font-size:1.1rem;">0</div>
+          <div style="font-size:0.7rem; color:var(--text-muted);">सुट्टी/निष्क्रिय</div>
+        </div>
+      </div>
+
+      <!-- Plan-wise Breakdown -->
+      <div style="font-size:0.8rem; font-weight:700; color:var(--text-muted); margin-bottom:6px;">प्लॅननिहाय पोळी विभाजन:</div>
+      <div id="swapRotiPlanBreakdown" class="stats-grid" style="margin-bottom:8px;"></div>
+
+      <!-- Excluded Details -->
+      <div style="background:var(--surface-2); padding:8px 10px; border-radius:8px; font-size:0.78rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleSwapRotiExcluded()">
+          <span style="font-weight:700; color:var(--text-muted);" id="swapRotiExcludedTitle">ℹ️ सुट्टी व निष्क्रिय ग्राहक तपशील</span>
+          <span id="swapRotiExcludedIcon">▼</span>
+        </div>
+        <div id="swapRotiExcludedList" style="display:none; margin-top:6px; max-height:120px; overflow-y:auto; border-top:1px solid var(--border); padding-top:4px;"></div>
+      </div>
+    </div>
+
+    <!-- Festival Calendar Pandharpur -->
+    <div class="card">
+      <div class="card-title">🚩 पंढरपूर सण व उत्सव दिनदर्शिका</div>
+      <div style="font-size:0.85rem; display:flex; flex-direction:column; gap:6px;">
+        <div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid var(--border);">
+          <span>🚩 <strong>आषाढी एकादशी (महायात्रा)</strong></span> <span style="color:var(--accent); font-weight:700;">आषाढ शुद्ध ११</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid var(--border);">
+          <span>🚩 <strong>कार्तिकी एकादशी (वारी)</strong></span> <span style="color:var(--accent); font-weight:700;">कार्तिक शुद्ध ११</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid var(--border);">
+          <span>🪔 <strong>दिवाळी व लक्ष्मीपूजन</strong></span> <span style="color:var(--accent); font-weight:700;">आश्विन अमावास्या</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; padding:4px 0;">
+          <span>🌺 <strong>गणेशोत्सव</strong></span> <span style="color:var(--accent); font-weight:700;">भाद्रपद चतुर्थी</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ingredient Calculator -->
+    <div class="card">
+      <div class="card-title">
+        <span>⚖️ अन्नधान्य अंदाज कॅल्क्युलेटर</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+        <label style="font-size:0.85rem; font-weight:700;">ग्राहक संख्या:</label>
+        <button class="btn btn-secondary btn-sm" onclick="adjustCustCount(-5)">-5</button>
+        <button class="btn btn-secondary btn-sm" onclick="adjustCustCount(-1)">-1</button>
+        <span id="calcCustDisplay" style="font-size:1.1rem; font-weight:800; min-width:40px; text-align:center;">30</span>
+        <button class="btn btn-secondary btn-sm" onclick="adjustCustCount(1)">+1</button>
+        <button class="btn btn-secondary btn-sm" onclick="adjustCustCount(5)">+5</button>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:0.85rem;">
+        <div class="stat-box"><div>आटा (गहू):</div> <strong id="calcAtta">3.0 kg</strong></div>
+        <div class="stat-box"><div>भाजीपाला:</div> <strong id="calcVeg">4.5 kg</strong></div>
+        <div class="stat-box"><div>डाळ:</div> <strong id="calcDal">1.5 kg</strong></div>
+        <div class="stat-box"><div>तांदूळ (भात):</div> <strong id="calcRice">3.0 kg</strong></div>
+        <div class="stat-box" style="grid-column: span 2;"><div>खाद्यतेल:</div> <strong id="calcOil">1.2 लिटर</strong></div>
+      </div>
+    </div>
+
+    <!-- Due Customers (Read Only) -->
+    <div class="card">
+      <div class="card-title">
+        <span>⚠️ बाकी असलेले ग्राहक</span>
+        <span style="font-size:0.8rem; color:var(--text-muted);">फक्त माहितीसाठी</span>
+      </div>
+      <div id="swapDueList" style="font-size:0.85rem; max-height:150px; overflow-y:auto;"></div>
+    </div>
+  </main>
+
+  <!-- TAB 2: PACKING -->
+  <section id="tab-packing" class="tab-content">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <h2 style="font-size:1.15rem; font-weight:800;">📦 टिफिन पॅकिंग चेकलिस्ट</h2>
+      <button class="btn btn-secondary btn-sm" onclick="resetPacking()">🔄 सर्व अनपॅक करा</button>
+    </div>
+    <div class="chip-group">
+      <button class="chip active" onclick="filterPackingMeal('All', this)">सर्व</button>
+      <button class="chip" onclick="filterPackingMeal('Lunch', this)">दुपार (Lunch)</button>
+      <button class="chip" onclick="filterPackingMeal('Dinner', this)">रात्र (Dinner)</button>
+    </div>
+    <div id="packingListContainer"></div>
+  </section>
+
+  <!-- TAB 3: CUSTOMERS -->
+  <section id="tab-customers" class="tab-content">
+    <h2 style="font-size:1.15rem; font-weight:800; margin-bottom:10px;">👥 ग्राहक यादी (वाचन फक्त)</h2>
+    <input type="text" id="custSearch" class="form-control" placeholder="🔍 ग्राहक नाव, नंबर किंवा भाग शोधा..." oninput="renderSwapCustomers()" style="margin-bottom:10px;">
+    <div id="swapCustomersContainer"></div>
+  </section>
+
+  <!-- TAB 4: ORDERS -->
+  <section id="tab-orders" class="tab-content">
+    <h2 style="font-size:1.15rem; font-weight:800; margin-bottom:10px;">🚴 आजच्या ऑर्डर्स</h2>
+    <div class="chip-group">
+      <button class="chip active" onclick="filterSwapOrders('all', this)">सर्व</button>
+      <button class="chip" onclick="filterSwapOrders('pending', this)">बाकी</button>
+      <button class="chip" onclick="filterSwapOrders('done', this)">डिलिव्हर्ड</button>
+      <button class="chip" onclick="filterSwapOrders('skip', this)">सुट्टी</button>
+    </div>
+    <div id="swapOrdersContainer"></div>
+  </section>
+
+  <!-- TAB 5: PAYMENTS -->
+  <section id="tab-payments" class="tab-content">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <h2 style="font-size:1.15rem; font-weight:800;">💰 जमा हिशोब</h2>
+      <button class="btn btn-primary btn-sm" onclick="openAddPaymentModal()">+ पेमेंट नोंदवा</button>
+    </div>
+    <div class="stats-grid" style="grid-template-columns: 1fr 1fr;">
+      <div class="stat-box">
+        <div class="stat-label">एकूण बाकी</div>
+        <div class="stat-val" style="color:var(--danger);" id="swapTotalDue">₹0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">अ‍ॅडव्हान्स</div>
+        <div class="stat-val" style="color:var(--primary);" id="swapTotalAdv">₹0</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">अलीकडील पेमेंट्स</div>
+      <div id="swapPaymentsContainer" style="font-size:0.85rem; max-height:350px; overflow-y:auto;"></div>
+    </div>
+  </section>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="nav-tab active" onclick="switchTab('dashboard', this)">
+      <span class="tab-icon">🏠</span><span>डॅशबोर्ड</span>
+    </button>
+    <button class="nav-tab" onclick="switchTab('packing', this)">
+      <span class="tab-icon">📦</span><span>पॅकिंग</span>
+    </button>
+    <button class="nav-tab" onclick="switchTab('customers', this)">
+      <span class="tab-icon">👥</span><span>ग्राहक</span>
+    </button>
+    <button class="nav-tab" onclick="switchTab('orders', this)">
+      <span class="tab-icon">🚴</span><span>ऑर्डर्स</span>
+    </button>
+    <button class="nav-tab" onclick="switchTab('payments', this)">
+      <span class="tab-icon">💰</span><span>पेमेंट</span>
+    </button>
+  </nav>
+
+  <!-- SABJI EDIT MODAL -->
+  <div class="modal" id="sabjiModal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <div class="modal-title">🍲 आठवड्याचा भाजी मेनू</div>
+        <button class="close-btn" onclick="closeModal('sabjiModal')">&times;</button>
+      </div>
+      <div class="form-group">
+        <label>वार निवडा:</label>
+        <select id="sabjiDaySelect" class="form-control" onchange="loadDaySabjiForm()">
+          <option value="0">सोमवार (Monday)</option>
+          <option value="1">मंगळवार (Tuesday)</option>
+          <option value="2">बुधवार (Wednesday)</option>
+          <option value="3">गुरुवार (Thursday)</option>
+          <option value="4">शुक्रवार (Friday)</option>
+          <option value="5">शनिवार (Saturday)</option>
+          <option value="6">रविवार (Sunday)</option>
+        </select>
+      </div>
+      <div style="font-size:0.85rem; font-weight:700; color:var(--primary); margin: 8px 0;">🥦 व्हेज मेनू:</div>
+      <div class="form-group">
+        <label>दुपार रस्सा भाजी:</label>
+        <input type="text" id="sabjiVegGravy" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>दुपार सुकी भाजी:</label>
+        <input type="text" id="sabjiVegDry" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>रात्र रस्सा भाजी:</label>
+        <input type="text" id="sabjiDinnerVegGravy" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>रात्र सुकी भाजी:</label>
+        <input type="text" id="sabjiDinnerVegDry" class="form-control">
+      </div>
+
+      <div style="font-size:0.85rem; font-weight:700; color:var(--danger); margin: 12px 0 8px;">🍗 नॉन-व्हेज मेनू:</div>
+      <div class="form-group">
+        <label>दुपार नॉन-व्हेज रस्सा:</label>
+        <input type="text" id="sabjiNvGravy" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>दुपार नॉन-व्हेज सुका:</label>
+        <input type="text" id="sabjiNvDry" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>रात्र नॉन-व्हेज रस्सा:</label>
+        <input type="text" id="sabjiDinnerNvGravy" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>रात्र नॉन-व्हेज सुका:</label>
+        <input type="text" id="sabjiDinnerNvDry" class="form-control">
+      </div>
+      <button class="btn btn-primary btn-block" onclick="saveSabjiDay()">मेनू सेव्ह करा</button>
+    </div>
+  </div>
+
+  <!-- ADD PAYMENT MODAL -->
+  <div class="modal" id="paymentModal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <div class="modal-title">पेमेंट नोंदवा</div>
+        <button class="close-btn" onclick="closeModal('paymentModal')">&times;</button>
+      </div>
+      <form onsubmit="saveSwapPayment(event)">
+        <div class="form-group">
+          <label>ग्राहक निवडा:</label>
+          <select id="swapPayCustSelect" class="form-control" required></select>
+        </div>
+        <div class="form-group">
+          <label>रक्कम (₹):</label>
+          <input type="number" id="swapPayAmt" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label>टीप / मोड (उदा. रोख किंवा UPI):</label>
+          <input type="text" id="swapPayNote" class="form-control" placeholder="उदा. रोख मिळाले">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">नोंदवा</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // FIREBASE INITIALIZATION
+    const firebaseConfig = {
+      apiKey: "AIzaSyBPQIQPbIu2cZrrmDteuh--pA-RItcTwaM",
+      databaseURL: "https://asan2337-739d0-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "asan2337-739d0",
+      appId: "1:210033293411:web:1deba83558fb5f94ea6056"
+    };
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    const db = firebase.database();
+
+    let customers = [];
+    let orders = [];
+    let payments = [];
+    let chuttis = {};
+    let weeklySabji = [];
+    let plans = [];
+    let packedSet = new Set(JSON.parse(localStorage.getItem('asan_packed_set') || '[]'));
+
+    const TODAY_KEY = new Date().toISOString().split('T')[0];
+    let calcCustomerCount = 30;
+
+    // THEME (Light / Dark)
+    let currentTheme = localStorage.getItem('asan_swap_theme') || 'light';
+    applyTheme(currentTheme);
+    function toggleTheme() {
+      currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+      applyTheme(currentTheme);
+      localStorage.setItem('asan_swap_theme', currentTheme);
+    }
+    function applyTheme(t) {
+      document.documentElement.setAttribute('data-theme', t);
+      const btn = document.getElementById('themeBtn');
+      if (btn) btn.textContent = t === 'light' ? '🌙' : '☀️';
+    }
+
+    // TAB NAVIGATION
+    function switchTab(tabName, el) {
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+      const target = document.getElementById('tab-' + tabName);
+      if (target) target.classList.add('active');
+      if (el) el.classList.add('active');
+      window.scrollTo(0, 0);
+    }
+
+    function openModal(id) { document.getElementById(id).classList.add('show'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+    // REALTIME LISTENERS
+    function initListeners() {
+      db.ref('CUSTOMERS').on('value', snap => {
+        const val = snap.val();
+        customers = val ? (Array.isArray(val) ? val.filter(Boolean) : Object.keys(val).map(k => ({id: k, ...val[k]}))) : [];
+        customers.sort((a,b) => (Number(a.serial)||0) - (Number(b.serial)||0));
+        renderDashboard();
+        renderPacking();
+        renderSwapCustomers();
+        renderSwapOrders();
+        populatePaymentCusts();
+      });
+
+      db.ref('ORDERS').on('value', snap => {
+        const val = snap.val();
+        orders = val ? (Array.isArray(val) ? val.filter(Boolean) : Object.keys(val).map(k => ({id: k, ...val[k]}))) : [];
+        renderDashboard();
+        renderSwapOrders();
+      });
+
+      db.ref('PAYMENTS').on('value', snap => {
+        const val = snap.val();
+        payments = val ? (Array.isArray(val) ? val.filter(Boolean) : Object.keys(val).map(k => ({id: k, ...val[k]}))) : [];
+        renderSwapPayments();
+      });
+
+      db.ref('CHUTTIS').on('value', snap => {
+        chuttis = snap.val() || {};
+        renderDashboard();
+        renderPacking();
+      });
+
+      db.ref('WEEKLY_SABJI').on('value', snap => {
+        const val = snap.val();
+        if (val) weeklySabji = Array.isArray(val) ? val : Object.values(val);
+        renderTodaySabji();
+      });
+
+      db.ref('PLANS').on('value', snap => {
+        const val = snap.val();
+        if (val) plans = Array.isArray(val) ? val : Object.values(val);
+        renderDashboard();
+      });
+    }
+
+    // DASHBOARD & TIME AWARE SABJI
+    function renderDashboard() {
+      const active = customers.filter(c => !c.inactive);
+      const todayChuttiCustIds = (chuttis[TODAY_KEY] ? Object.keys(chuttis[TODAY_KEY]) : []);
+      const activeToday = active.filter(c => !todayChuttiCustIds.includes(String(c.id)));
+
+      document.getElementById('statTotalTiffins').textContent = activeToday.length;
+
+      let packedCount = 0;
+      activeToday.forEach(c => {
+        if (packedSet.has(c.id)) packedCount++;
+      });
+      document.getElementById('statPackedTiffins').textContent = packedCount;
+
+      let orderMap = {};
+      orders.forEach(o => { orderMap[o.custId] = o; });
+      let delivCount = 0;
+      activeToday.forEach(c => {
+        if (orderMap[c.id] && orderMap[c.id].status === 'delivered') delivCount++;
+      });
+      document.getElementById('statDeliveredTiffins').textContent = delivCount;
+
+      // Progress bar
+      const pct = activeToday.length ? Math.round((packedCount / activeToday.length) * 100) : 0;
+      document.getElementById('packProgressFill').style.width = pct + '%';
+      document.getElementById('packPercentText').textContent = pct + '%';
+
+      // Plan wise progress
+      const planStats = {};
+      activeToday.forEach(c => {
+        const p = c.plan || 'Standard';
+        if (!planStats[p]) planStats[p] = { total: 0, packed: 0 };
+        planStats[p].total++;
+        if (packedSet.has(c.id)) planStats[p].packed++;
+      });
+
+      document.getElementById('planWiseProgressList').innerHTML = Object.keys(planStats).map(p => {
+        const item = planStats[p];
+        return `<div style="display:flex; justify-content:space-between; padding:3px 0;">
+          <span>${p}:</span>
+          <strong>${item.packed} / ${item.total} पॅक झाले</strong>
+        </div>`;
+      }).join('');
+
+      // Roti calculation
+      calculateAndRenderSwapRotis();
+
+      // Due list
+      const dueCusts = active.filter(c => (Number(c.balance) || 0) < 0);
+      document.getElementById('swapDueList').innerHTML = dueCusts.map(c => `
+        <div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid var(--border);">
+          <span>#${c.serial} ${c.name} (${c.area})</span>
+          <span style="color:var(--danger); font-weight:700;">₹${Math.abs(c.balance)}</span>
+        </div>
+      `).join('') || '<div style="color:var(--text-muted);">कोणाचीही बाकी नाही.</div>';
+    }
+
+    let swapRotiFilter = 'All'; // 'All' | 'Lunch' | 'Dinner'
+
+    function setSwapRotiFilter(filter, el) {
+      swapRotiFilter = filter;
+      document.querySelectorAll('#swapRotiCard .chip').forEach(c => c.classList.remove('active'));
+      if (el) el.classList.add('active');
+      calculateAndRenderSwapRotis();
+    }
+
+    function toggleSwapRotiExcluded() {
+      const list = document.getElementById('swapRotiExcludedList');
+      const icon = document.getElementById('swapRotiExcludedIcon');
+      if (list.style.display === 'none' || !list.style.display) {
+        list.style.display = 'block';
+        icon.textContent = '▲';
+      } else {
+        list.style.display = 'none';
+        icon.textContent = '▼';
+      }
+    }
+
+    function calculateAndRenderSwapRotis() {
+      // Exclude inactive customers completely
+      const activeCusts = customers.filter(c => !c.inactive);
+      const inactiveCusts = customers.filter(c => c.inactive);
+      const todayChuttis = chuttis[TODAY_KEY] || {};
+
+      let lunchRotis = 0;
+      let lunchCusts = 0;
+      let dinnerRotis = 0;
+      let dinnerCusts = 0;
+
+      let planBreakdown = {};
+      plans.forEach(p => {
+        planBreakdown[p.name] = { custs: 0, rotis: 0, perCust: Number(p.roti) || 3 };
+      });
+
+      const excludedList = [];
+      inactiveCusts.forEach(c => {
+        excludedList.push({ name: c.name, serial: c.serial, reason: '⏸️ निष्क्रिय (Inactive)' });
+      });
+
+      activeCusts.forEach(c => {
+        const planObj = plans.find(p => p.name === c.plan) || { name: c.plan || 'Standard', roti: 3 };
+        const rotisPerMeal = Number(c.customRoti) || Number(planObj.roti) || 3;
+        const mealPref = c.meal || 'Both';
+
+        const chuttiInfo = todayChuttis[c.id];
+        let onLeaveLunch = false;
+        let onLeaveDinner = false;
+
+        if (chuttiInfo) {
+          const leaveType = typeof chuttiInfo === 'object' && chuttiInfo.mealType ? chuttiInfo.mealType : 'Both';
+          if (leaveType === 'Both') {
+            onLeaveLunch = true;
+            onLeaveDinner = true;
+            excludedList.push({ name: c.name, serial: c.serial, reason: '🏖️ पूर्ण दिवस सुट्टी' });
+          } else if (leaveType === 'Lunch') {
+            onLeaveLunch = true;
+            excludedList.push({ name: c.name, serial: c.serial, reason: '🏖️ दुपार सुट्टी' });
+          } else if (leaveType === 'Dinner') {
+            onLeaveDinner = true;
+            excludedList.push({ name: c.name, serial: c.serial, reason: '🏖️ रात्र सुट्टी' });
+          }
+        }
+
+        let needsLunch = false;
+        if ((mealPref === 'Lunch' || mealPref === 'Both') && !onLeaveLunch) {
+          needsLunch = true;
+          lunchRotis += rotisPerMeal;
+          lunchCusts++;
+        }
+
+        let needsDinner = false;
+        if ((mealPref === 'Dinner' || mealPref === 'Both') && !onLeaveDinner) {
+          needsDinner = true;
+          dinnerRotis += rotisPerMeal;
+          dinnerCusts++;
+        }
+
+        let custRotis = 0;
+        if (swapRotiFilter === 'Lunch' && needsLunch) custRotis = rotisPerMeal;
+        else if (swapRotiFilter === 'Dinner' && needsDinner) custRotis = rotisPerMeal;
+        else if (swapRotiFilter === 'All') {
+          if (needsLunch) custRotis += rotisPerMeal;
+          if (needsDinner) custRotis += rotisPerMeal;
+        }
+
+        if (custRotis > 0) {
+          if (!planBreakdown[planObj.name]) {
+            planBreakdown[planObj.name] = { custs: 0, rotis: 0, perCust: rotisPerMeal };
+          }
+          planBreakdown[planObj.name].custs++;
+          planBreakdown[planObj.name].rotis += custRotis;
+        }
+      });
+
+      let displayTotal = 0;
+      if (swapRotiFilter === 'Lunch') displayTotal = lunchRotis;
+      else if (swapRotiFilter === 'Dinner') displayTotal = dinnerRotis;
+      else displayTotal = lunchRotis + dinnerRotis;
+
+      const totalEl = document.getElementById('swapTotalRotis');
+      if (totalEl) totalEl.textContent = displayTotal + ' पोळ्या';
+      const lunchValEl = document.getElementById('swapRotiLunchVal');
+      if (lunchValEl) lunchValEl.textContent = lunchRotis + ' पोळ्या';
+      const lunchCustsEl = document.getElementById('swapRotiLunchCusts');
+      if (lunchCustsEl) lunchCustsEl.textContent = lunchCusts + ' ग्राहक';
+      const dinnerValEl = document.getElementById('swapRotiDinnerVal');
+      if (dinnerValEl) dinnerValEl.textContent = dinnerRotis + ' पोळ्या';
+      const dinnerCustsEl = document.getElementById('swapRotiDinnerCusts');
+      if (dinnerCustsEl) dinnerCustsEl.textContent = dinnerCusts + ' ग्राहक';
+
+      const excludedValEl = document.getElementById('swapRotiExcludedVal');
+      if (excludedValEl) excludedValEl.textContent = excludedList.length;
+      const excludedTitleEl = document.getElementById('swapRotiExcludedTitle');
+      if (excludedTitleEl) excludedTitleEl.textContent = `ℹ️ सुट्टी व निष्क्रिय ग्राहक (${excludedList.length} वगळलेले)`;
+
+      const breakdownEl = document.getElementById('swapRotiPlanBreakdown');
+      if (breakdownEl) {
+        breakdownEl.innerHTML = Object.keys(planBreakdown).map(name => {
+          const item = planBreakdown[name];
+          return `
+            <div class="stat-box">
+              <div class="stat-label">${name} (${item.perCust} पोळ्या)</div>
+              <div class="stat-val" style="font-size:1.15rem;">${item.rotis} <span style="font-size:0.75rem; font-weight:normal; color:var(--text-muted);">(${item.custs} ग्राहक)</span></div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      const excludedListEl = document.getElementById('swapRotiExcludedList');
+      if (excludedListEl) {
+        if (excludedList.length > 0) {
+          excludedListEl.innerHTML = excludedList.map(item => `
+            <div style="display:flex; justify-content:space-between; padding:3px 0; border-bottom:1px solid rgba(0,0,0,0.04);">
+              <span>#${item.serial || '-'} ${item.name}</span>
+              <span style="color:var(--danger); font-weight:600;">${item.reason}</span>
+            </div>
+          `).join('');
+        } else {
+          excludedListEl.innerHTML = '<div style="color:var(--text-muted);">आज कोणतीही सुट्टी किंवा निष्क्रिय ग्राहक नाही.</div>';
+        }
+      }
+    }
+
+    function renderTodaySabji() {
+      if (!weeklySabji.length) return;
+      const dayIdx = (new Date().getDay() + 6) % 7;
+      const d = weeklySabji[dayIdx] || weeklySabji[0];
+      const hour = new Date().getHours();
+      const isDinner = hour >= 15;
+
+      document.getElementById('todaySabjiHeading').textContent = `🍲 आजची भाजी (${d.dayH} - ${isDinner ? 'रात्र' : 'दुपार'})`;
+      document.getElementById('swapVegGravy').textContent = isDinner ? (d.dinner_gravy || d.gravy) : d.gravy;
+      document.getElementById('swapVegDry').textContent = isDinner ? (d.dinner_dry || d.dry) : d.dry;
+      document.getElementById('swapNvGravy').textContent = isDinner ? (d.nv_dinner_gravy || d.nv_gravy) : d.nv_gravy;
+      document.getElementById('swapNvDry').textContent = isDinner ? (d.nv_dinner_dry || d.nv_dry) : d.nv_dry;
+    }
+
+    // PACKING TAB
+    let packingMealFilter = 'All';
+    function filterPackingMeal(meal, el) {
+      packingMealFilter = meal;
+      el.parentElement.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+      renderPacking();
+    }
+
+    function renderPacking() {
+      const container = document.getElementById('packingListContainer');
+      const active = customers.filter(c => !c.inactive);
+      const todayChuttiCustIds = (chuttis[TODAY_KEY] ? Object.keys(chuttis[TODAY_KEY]) : []);
+      const activeToday = active.filter(c => !todayChuttiCustIds.includes(String(c.id)));
+
+      let filtered = activeToday.filter(c => {
+        if (packingMealFilter === 'Lunch') return c.meal === 'Lunch' || c.meal === 'Both';
+        if (packingMealFilter === 'Dinner') return c.meal === 'Dinner' || c.meal === 'Both';
+        return true;
+      });
+
+      const vegGroup = filtered.filter(c => c.foodType === 'Veg');
+      const nvGroup = filtered.filter(c => c.foodType !== 'Veg');
+
+      function buildGroupHtml(title, list, icon) {
+        return `
+          <div class="card">
+            <div class="card-title">${icon} ${title} (${list.length})</div>
+            ${list.map(c => {
+              const isPacked = packedSet.has(c.id);
+              return `
+                <div class="pack-item ${isPacked ? 'packed' : ''}" onclick="togglePackItem('${c.id}')">
+                  <div>
+                    <span style="background:var(--surface-2); padding:2px 6px; border-radius:4px; font-weight:800; font-size:0.8rem;">#${c.serial}</span>
+                    <span class="pack-name" style="font-weight:700; margin-left:6px;">${c.name}</span>
+                    <div style="font-size:0.75rem; color:var(--text-muted); margin-left:26px;">${c.plan} | ${c.meal} | 📍 ${c.area}</div>
+                  </div>
+                  <div style="font-size:1.2rem;">${isPacked ? '✅' : '⚪'}</div>
+                </div>
+              `;
+            }).join('') || '<div style="color:var(--text-muted); font-size:0.85rem;">या गटात टिफिन नाहीत.</div>'}
+          </div>
+        `;
+      }
+
+      container.innerHTML = buildGroupHtml('व्हेज टिफिन (Veg Tiffins)', vegGroup, '🥦') +
+                            buildGroupHtml('नॉन-व्हेज टिफिन (Non-Veg Tiffins)', nvGroup, '🍗');
+    }
+
+    function togglePackItem(id) {
+      if (packedSet.has(id)) {
+        packedSet.delete(id);
+      } else {
+        packedSet.add(id);
+      }
+      localStorage.setItem('asan_packed_set', JSON.stringify([...packedSet]));
+      renderPacking();
+      renderDashboard();
+    }
+
+    function resetPacking() {
+      if (confirm('सर्व टिफिन अनपॅक (Reset) करायचे का?')) {
+        packedSet.clear();
+        localStorage.removeItem('asan_packed_set');
+        renderPacking();
+        renderDashboard();
+      }
+    }
+
+    // INGREDIENT CALCULATOR
+    function adjustCustCount(delta) {
+      calcCustomerCount = Math.max(5, calcCustomerCount + delta);
+      document.getElementById('calcCustDisplay').textContent = calcCustomerCount;
+      document.getElementById('calcAtta').textContent = (calcCustomerCount * 0.1).toFixed(1) + ' kg';
+      document.getElementById('calcVeg').textContent = (calcCustomerCount * 0.15).toFixed(1) + ' kg';
+      document.getElementById('calcDal').textContent = (calcCustomerCount * 0.05).toFixed(1) + ' kg';
+      document.getElementById('calcRice').textContent = (calcCustomerCount * 0.1).toFixed(1) + ' kg';
+      document.getElementById('calcOil').textContent = (calcCustomerCount * 0.04).toFixed(2) + ' लिटर';
+    }
+
+    // CUSTOMERS TAB
+    function renderSwapCustomers() {
+      const container = document.getElementById('swapCustomersContainer');
+      const q = (document.getElementById('custSearch').value || '').toLowerCase();
+      const filtered = customers.filter(c => (c.name||'').toLowerCase().includes(q) || (c.area||'').toLowerCase().includes(q) || (c.phone||'').includes(q));
+
+      container.innerHTML = filtered.map(c => `
+        <div class="card" style="margin-bottom:8px; padding:10px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <strong>#${c.serial} ${c.name}</strong>
+            <span style="font-weight:800; font-size:0.85rem; color:${(c.balance||0)<0 ? 'var(--danger)' : 'var(--primary)'};">
+              ${(c.balance||0)<0 ? 'बाकी: ₹' + Math.abs(c.balance) : 'अ‍ॅडव्हान्स: ₹' + (c.balance||0)}
+            </span>
+          </div>
+          <div style="font-size:0.8rem; color:var(--text-muted); margin-top:4px;">
+            📍 ${c.area} | 🏷️ ${c.plan} | ⏰ ${c.meal} | ${c.foodType==='Veg' ? '🥦 व्हेज' : '🍗 नॉन-व्हेज'}
+          </div>
+        </div>
+      `).join('') || '<div style="color:var(--text-muted); padding:10px;">ग्राहक सापडले नाहीत.</div>';
+    }
+
+    // ORDERS TAB
+    let swapOrderFilter = 'all';
+    function filterSwapOrders(filter, el) {
+      swapOrderFilter = filter;
+      el.parentElement.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+      renderSwapOrders();
+    }
+
+    function renderSwapOrders() {
+      const container = document.getElementById('swapOrdersContainer');
+      const active = customers.filter(c => !c.inactive);
+      const todayChuttiCustIds = (chuttis[TODAY_KEY] ? Object.keys(chuttis[TODAY_KEY]) : []);
+      let orderMap = {};
+      orders.forEach(o => { orderMap[o.custId] = o; });
+
+      let filtered = active.filter(c => {
+        const ord = orderMap[c.id] || {};
+        const isChutti = todayChuttiCustIds.includes(String(c.id));
+        if (swapOrderFilter === 'pending') return ord.status !== 'delivered' && !isChutti;
+        if (swapOrderFilter === 'done') return ord.status === 'delivered';
+        if (swapOrderFilter === 'skip') return isChutti;
+        return true;
+      });
+
+      container.innerHTML = filtered.map(c => {
+        const ord = orderMap[c.id] || { stage: 'cooking', status: 'pending' };
+        const isChutti = todayChuttiCustIds.includes(String(c.id));
+        return `
+          <div class="card" style="margin-bottom:8px; padding:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <strong>#${c.serial} ${c.name} (${c.area})</strong>
+              <span style="font-size:0.85rem;">${isChutti ? '🏖️ सुट्टी' : (ord.status==='delivered' ? '✅ पोहचले' : '⏳ बाकी')}</span>
+            </div>
+            <div style="display:flex; gap:6px; margin-top:8px;">
+              <button class="btn btn-sm ${ord.stage==='cooking' ? 'btn-primary' : 'btn-secondary'}" onclick="setOrderStage('${c.id}', 'cooking')">🍳 Cooking</button>
+              <button class="btn btn-sm ${ord.stage==='packed' ? 'btn-primary' : 'btn-secondary'}" onclick="setOrderStage('${c.id}', 'packed')">📦 Packed</button>
+              <button class="btn btn-sm ${ord.stage==='onway' ? 'btn-primary' : 'btn-secondary'}" onclick="setOrderStage('${c.id}', 'onway')">🚴 On Way</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function setOrderStage(custId, stage) {
+      db.ref('ORDERS/' + custId).update({
+        custId: custId,
+        stage: stage,
+        date: TODAY_KEY
+      });
+    }
+
+    // PAYMENTS TAB
+    function renderSwapPayments() {
+      const active = customers.filter(c => !c.inactive);
+      let totalDue = 0, totalAdv = 0;
+      active.forEach(c => {
+        const bal = Number(c.balance) || 0;
+        if (bal < 0) totalDue += Math.abs(bal);
+        else if (bal > 0) totalAdv += bal;
+      });
+      document.getElementById('swapTotalDue').textContent = '₹' + totalDue;
+      document.getElementById('swapTotalAdv').textContent = '₹' + totalAdv;
+
+      const container = document.getElementById('swapPaymentsContainer');
+      container.innerHTML = payments.slice(-20).reverse().map(p => `
+        <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border);">
+          <div>
+            <strong>${p.name}</strong> <span style="font-size:0.75rem; color:var(--text-muted);">${p.date||'-'}</span>
+            ${p.ref ? `<div style="font-size:0.75rem; color:var(--text-muted);">${p.ref}</div>` : ''}
+          </div>
+          <strong style="color:var(--primary); font-size:1rem;">+₹${p.amount}</strong>
+        </div>
+      `).join('') || '<div style="color:var(--text-muted); padding:8px;">पेमेंट नोंदी उपलब्ध नाहीत.</div>';
+    }
+
+    function populatePaymentCusts() {
+      const active = customers.filter(c => !c.inactive);
+      document.getElementById('swapPayCustSelect').innerHTML = active.map(c => `
+        <option value="${c.id}">#${c.serial} ${c.name} (${c.area})</option>
+      `).join('');
+    }
+
+    function openAddPaymentModal() {
+      populatePaymentCusts();
+      openModal('paymentModal');
+    }
+
+    function saveSwapPayment(e) {
+      e.preventDefault();
+      const custId = document.getElementById('swapPayCustSelect').value;
+      const amt = Number(document.getElementById('swapPayAmt').value) || 0;
+      const note = document.getElementById('swapPayNote').value.trim();
+      const cust = customers.find(c => c.id == custId);
+
+      db.ref('PAYMENTS').push({
+        custId: custId,
+        name: cust ? cust.name : 'Unknown',
+        amount: amt,
+        mode: 'Cash',
+        ref: note || 'स्वप्नाली कडून नोंदवले',
+        date: TODAY_KEY
+      }).then(() => {
+        if (cust) {
+          db.ref('CUSTOMERS/' + custId + '/balance').set((Number(cust.balance)||0) + amt);
+        }
+        closeModal('paymentModal');
+        alert('पेमेंट नोंदवले गेले!');
+      });
+    }
+
+    // SABJI EDIT MODAL
+    function openSabjiModal() {
+      loadDaySabjiForm();
+      openModal('sabjiModal');
+    }
+
+    function loadDaySabjiForm() {
+      const dayIdx = Number(document.getElementById('sabjiDaySelect').value) || 0;
+      const d = weeklySabji[dayIdx] || {};
+      document.getElementById('sabjiVegGravy').value = d.gravy || '';
+      document.getElementById('sabjiVegDry').value = d.dry || '';
+      document.getElementById('sabjiDinnerVegGravy').value = d.dinner_gravy || '';
+      document.getElementById('sabjiDinnerVegDry').value = d.dinner_dry || '';
+      document.getElementById('sabjiNvGravy').value = d.nv_gravy || '';
+      document.getElementById('sabjiNvDry').value = d.nv_dry || '';
+      document.getElementById('sabjiDinnerNvGravy').value = d.nv_dinner_gravy || '';
+      document.getElementById('sabjiDinnerNvDry').value = d.nv_dinner_dry || '';
+    }
+
+    function saveSabjiDay() {
+      const dayIdx = Number(document.getElementById('sabjiDaySelect').value) || 0;
+      if (!weeklySabji[dayIdx]) weeklySabji[dayIdx] = {};
+      weeklySabji[dayIdx].gravy = document.getElementById('sabjiVegGravy').value.trim();
+      weeklySabji[dayIdx].dry = document.getElementById('sabjiVegDry').value.trim();
+      weeklySabji[dayIdx].dinner_gravy = document.getElementById('sabjiDinnerVegGravy').value.trim();
+      weeklySabji[dayIdx].dinner_dry = document.getElementById('sabjiDinnerVegDry').value.trim();
+      weeklySabji[dayIdx].nv_gravy = document.getElementById('sabjiNvGravy').value.trim();
+      weeklySabji[dayIdx].nv_dry = document.getElementById('sabjiNvDry').value.trim();
+      weeklySabji[dayIdx].nv_dinner_gravy = document.getElementById('sabjiDinnerNvGravy').value.trim();
+      weeklySabji[dayIdx].nv_dinner_dry = document.getElementById('sabjiDinnerNvDry').value.trim();
+
+      db.ref('WEEKLY_SABJI/' + dayIdx).set(weeklySabji[dayIdx]).then(() => {
+        closeModal('sabjiModal');
+        renderTodaySabji();
+        alert('भाजी मेनू अपडेट झाला!');
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initListeners();
+    });
+  </script>
+</body>
+</html>
